@@ -119,6 +119,7 @@ body {
 
 /* Dropzone */
 .dropzone {
+  position: relative;
   display: block;
   border: 2px dashed #3b4d71;
   border-radius: 14px;
@@ -127,13 +128,30 @@ body {
   cursor: pointer;
   background: rgba(255, 255, 255, 0.015);
   transition: all 0.2s ease;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.file-input-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
 }
 
 .dropzone:hover,
 .dropzone.dragover {
   border-color: var(--primary);
   background: rgba(99, 102, 241, 0.08);
+}
+
+.dropzone.has-file {
+  border-color: var(--accent);
+  border-style: solid;
+  background: rgba(16, 185, 129, 0.08);
 }
 
 .drop-icon {

@@ -1,18 +1,33 @@
 import os
 import shutil
+import tempfile
 from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data"
-UPLOADS_DIR = DATA_DIR / "uploads"
-JOBS_DIR = DATA_DIR / "jobs"
 STATIC_DIR = BASE_DIR / "static"
 
-for directory in (DATA_DIR, UPLOADS_DIR, JOBS_DIR, STATIC_DIR):
-    directory.mkdir(parents=True, exist_ok=True)
+IS_SERVERLESS = bool(
+    os.getenv("VERCEL")
+    or os.getenv("AWS_LAMBDA_FUNCTION_NAME")
+    or os.getenv("NOW_REGION")
+)
+
+if IS_SERVERLESS:
+    DATA_DIR = Path(tempfile.gettempdir()) / "shortvideo_data"
+else:
+    DATA_DIR = BASE_DIR / "data"
+
+UPLOADS_DIR = DATA_DIR / "uploads"
+JOBS_DIR = DATA_DIR / "jobs"
+
+for directory in (DATA_DIR, UPLOADS_DIR, JOBS_DIR):
+    try:
+        directory.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pass
 
 
 def get_ffmpeg_executable() -> str:
@@ -24,13 +39,14 @@ def get_ffmpeg_executable() -> str:
         import imageio_ffmpeg
         return imageio_ffmpeg.get_ffmpeg_exe()
     except Exception:
-        return "ffmpeg"
+        return ""
 
 
 FFMPEG_BIN = get_ffmpeg_executable()
+HAS_FFMPEG = bool(FFMPEG_BIN and shutil.which(FFMPEG_BIN) or (FFMPEG_BIN and Path(FFMPEG_BIN).exists()))
 
 # Configurações predefinidas de IA
-DEFAULT_LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").lower()
+DEFAULT_LLM_PROVIDER = os.getenv("LLM_PROVIDER", "local").lower()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 

@@ -1,0 +1,10 @@
+.venv
+venv
+__pycache__
+data
+*.mp4
+*.mkv
+*.mov
+*.wav
+*.zip
+.env

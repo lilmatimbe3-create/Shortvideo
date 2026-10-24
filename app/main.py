@@ -3,7 +3,7 @@ import shutil
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 
 from fastapi import (
     FastAPI,
@@ -17,21 +17,27 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from app.config import UPLOADS_DIR, JOBS_DIR, STATIC_DIR
-from app.transcriber import extract_audio, transcribe_audio, format_timestamp
+from app.config import UPLOADS_DIR, JOBS_DIR, STATIC_DIR, IS_SERVERLESS, HAS_FFMPEG
+from app.transcriber import (
+    extract_audio,
+    transcribe_audio,
+    format_timestamp,
+    format_srt_timestamp,
+    TranscriptSegment,
+    build_transcript_map,
+    write_clip_srt,
+)
 from app.analyzer import find_best_moments, _collect_excerpt_for_range
 from app.video_processor import generate_clips_package, cut_video_clip, slugify_filename
-from app.transcriber import write_clip_srt
 
 app = FastAPI(
     title="ShortVideo AI — Gerador Inteligente de Clips Curtos",
     description="Transforma vídeos longos (podcasts, aulas, diretos) em clips curtos prontos a publicar.",
-    version="1.0.0",
+    version="1.1.0",
 )
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-# Estado em memória com persistência em disco em data/jobs/<job_id>/status.json
 JOBS_STATE: Dict[str, Dict[str, Any]] = {}
 
 
@@ -39,12 +45,15 @@ def _save_job_state(job_id: str) -> None:
     job = JOBS_STATE.get(job_id)
     if not job:
         return
-    job_dir = JOBS_DIR / job_id
-    job_dir.mkdir(parents=True, exist_ok=True)
-    status_file = job_dir / "status.json"
-    status_file.write_text(
-        json.dumps(job, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    try:
+        job_dir = JOBS_DIR / job_id
+        job_dir.mkdir(parents=True, exist_ok=True)
+        status_file = job_dir / "status.json"
+        status_file.write_text(
+            json.dumps(job, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+    except Exception:
+        pass
 
 
 def _load_job_state(job_id: str) -> Optional[Dict[str, Any]]:
@@ -66,18 +75,147 @@ def _update_progress(job_id: str, progress: int, step: str, message: str) -> Non
         _save_job_state(job_id)
 
 
+def _build_srt_string(
+    segments: List[Dict[str, Any]], clip_start: float, clip_end: float
+) -> str:
+    blocks = []
+    counter = 1
+    for seg in segments:
+        seg_start = float(seg["start"])
+        seg_end = float(seg["end"])
+        if seg_end <= clip_start or seg_start >= clip_end:
+            continue
+        rel_start = max(0.0, seg_start - clip_start)
+        rel_end = min(clip_end - clip_start, seg_end - clip_start)
+        if rel_end - rel_start < 0.15:
+            continue
+        blocks.append(
+            f"{counter}\n"
+            f"{format_srt_timestamp(rel_start)} --> {format_srt_timestamp(rel_end)}\n"
+            f"{seg['text'].strip()}\n"
+        )
+        counter += 1
+    return "\n".join(blocks)
+
+
+@app.get("/", response_class=HTMLResponse)
+async def index():
+    index_file = STATIC_DIR / "index.html"
+    return HTMLResponse(index_file.read_text(encoding="utf-8"))
+
+
+@app.get("/api/environment")
+async def get_environment():
+    return {
+        "is_serverless": IS_SERVERLESS,
+        "has_ffmpeg": HAS_FFMPEG,
+    }
+
+
+class LightAnalyzeRequest(BaseModel):
+    filename: str = "video.mp4"
+    duration: float
+    segments: List[Dict[str, Any]] = []
+    llm_provider: str = "local"
+    api_key: str = ""
+    llm_model: str = ""
+    max_clips: int = 5
+    min_duration: int = 15
+    max_duration: int = 75
+    vertical_crop: bool = False
+    burn_subtitles: bool = False
+
+
+@app.post("/api/analyze-light")
+async def analyze_light(req: LightAnalyzeRequest):
+    """
+    Endpoint leve compatível com Vercel Serverless (sem limite de tamanho de vídeo):
+    recebe o mapa de segmentos extraído no browser, executa o modelo de linguagem (IA)
+    e devolve os momentos selecionados com tempos de corte exatos e legendas SRT.
+    """
+    duration = max(1.0, float(req.duration))
+    segments_dicts = req.segments
+
+    if not segments_dicts:
+        step = 15.0
+        t = 0.0
+        idx = 1
+        while t < duration:
+            end_t = min(duration, t + step)
+            segments_dicts.append(
+                {
+                    "id": idx,
+                    "start": round(t, 2),
+                    "end": round(end_t, 2),
+                    "text": f"Excerto de fala #{idx} ({format_timestamp(t)} → {format_timestamp(end_t)}).",
+                }
+            )
+            idx += 1
+            t = end_t
+
+    seg_objs = [
+        TranscriptSegment(
+            id=int(s.get("id", i)),
+            start=round(float(s["start"]), 2),
+            end=round(float(s["end"]), 2),
+            text=str(s.get("text", "")),
+        )
+        for i, s in enumerate(segments_dicts, start=1)
+    ]
+    transcript_map = build_transcript_map(seg_objs)
+
+    analysis = find_best_moments(
+        segments=segments_dicts,
+        transcript_map=transcript_map,
+        video_duration=duration,
+        provider=req.llm_provider,
+        api_key=req.api_key,
+        model_name=req.llm_model,
+        max_clips=req.max_clips,
+        min_clip_seconds=req.min_duration,
+        max_clip_seconds=req.max_duration,
+    )
+
+    clips_out = []
+    for i, clip in enumerate(analysis["clips"], start=1):
+        slug = slugify_filename(clip.get("title") or f"clip_{i}")
+        base_name = f"clip_{i:02d}_{slug}"
+        srt_content = _build_srt_string(segments_dicts, clip["start"], clip["end"])
+        clips_out.append(
+            {
+                **clip,
+                "filename": f"{base_name}.mp4",
+                "srt_filename": f"{base_name}.srt",
+                "srt_content": srt_content,
+                "vertical_crop": req.vertical_crop,
+                "burn_subtitles": req.burn_subtitles,
+            }
+        )
+
+    return {
+        "job_id": "browser_" + uuid.uuid4().hex[:8],
+        "original_filename": req.filename,
+        "duration": round(duration, 2),
+        "duration_formatted": format_timestamp(duration),
+        "llm_engine": analysis["engine"],
+        "segments": segments_dicts,
+        "transcript_map": transcript_map,
+        "clips": clips_out,
+        "browser_mode": True,
+    }
+
+
 def run_video_pipeline(
     job_id: str,
     video_path: Path,
     options: Dict[str, Any],
 ) -> None:
-    """Executa todo o pipeline de IA em background: Áudio -> Transcrição -> LLM -> Corte de Clips."""
+    """Executa todo o pipeline de IA em background no servidor local: Áudio -> Transcrição -> LLM -> Corte de Clips."""
     job_dir = JOBS_DIR / job_id
     clips_dir = job_dir / "clips"
     audio_path = job_dir / "audio_16k.wav"
 
     try:
-        # 1. Extração de Áudio
         _update_progress(
             job_id,
             10,
@@ -86,7 +224,6 @@ def run_video_pipeline(
         )
         extract_audio(video_path, audio_path)
 
-        # 2. Transcrição com Timestamps
         def whisper_progress(pct: int, msg: str) -> None:
             _update_progress(job_id, pct, "transcription", msg)
 
@@ -97,7 +234,6 @@ def run_video_pipeline(
             on_progress=whisper_progress,
         )
 
-        # Remover WAV temporário para poupar espaço em disco
         if audio_path.exists():
             audio_path.unlink(missing_ok=True)
 
@@ -109,7 +245,6 @@ def run_video_pipeline(
         JOBS_STATE[job_id]["segments"] = transcription["segments"]
         JOBS_STATE[job_id]["transcript_map"] = transcription["transcript_map"]
 
-        # 3. Seleção dos Momentos Fortes pelo Modelo de Linguagem
         _update_progress(
             job_id,
             60,
@@ -120,7 +255,7 @@ def run_video_pipeline(
             segments=transcription["segments"],
             transcript_map=transcription["transcript_map"],
             video_duration=transcription["duration"],
-            provider=options.get("llm_provider", "gemini"),
+            provider=options.get("llm_provider", "local"),
             api_key=options.get("api_key", ""),
             model_name=options.get("llm_model", ""),
             max_clips=int(options.get("max_clips", 5)),
@@ -130,7 +265,6 @@ def run_video_pipeline(
 
         JOBS_STATE[job_id]["llm_engine"] = analysis["engine"]
 
-        # 4. Recorte do Vídeo Original e Empacotamento
         def cutting_progress(pct: int, msg: str) -> None:
             _update_progress(job_id, pct, "cutting", msg)
 
@@ -164,19 +298,14 @@ def run_video_pipeline(
         )
 
 
-@app.get("/", response_class=HTMLResponse)
-async def index():
-    index_file = STATIC_DIR / "index.html"
-    return HTMLResponse(index_file.read_text(encoding="utf-8"))
-
-
 @app.post("/api/jobs")
 async def create_job(
     background_tasks: BackgroundTasks,
-    video: UploadFile = File(...),
+    video: Optional[UploadFile] = File(None),
+    local_video_path: str = Form(""),
     language: str = Form("pt"),
     whisper_model: str = Form("base"),
-    llm_provider: str = Form("gemini"),
+    llm_provider: str = Form("local"),
     api_key: str = Form(""),
     llm_model: str = Form(""),
     max_clips: int = Form(5),
@@ -185,16 +314,40 @@ async def create_job(
     vertical_crop: bool = Form(False),
     burn_subtitles: bool = Form(False),
 ):
-    """Recebe o vídeo carregado pelo utilizador e inicia o pipeline de criação de clips."""
+    """Recebe o vídeo carregado pelo utilizador (ou caminho local) e inicia o pipeline de criação de clips."""
     job_id = datetime.now().strftime("%Y%m%d_%H%M%S_") + uuid.uuid4().hex[:6]
     job_dir = JOBS_DIR / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
 
-    safe_ext = Path(video.filename or "video.mp4").suffix or ".mp4"
-    video_path = job_dir / f"source{safe_ext}"
+    original_filename = "video.mp4"
+    clean_local = local_video_path.strip().strip('"').strip("'")
 
-    with video_path.open("wb") as buffer:
-        shutil.copyfileobj(video.file, buffer)
+    if video and video.filename:
+        original_filename = video.filename
+        safe_ext = Path(video.filename).suffix or ".mp4"
+        video_path = job_dir / f"source{safe_ext}"
+        with video_path.open("wb") as buffer:
+            while True:
+                chunk = await video.read(4 * 1024 * 1024)
+                if not chunk:
+                    break
+                buffer.write(chunk)
+    elif clean_local:
+        src_path = Path(clean_local)
+        if not src_path.exists() or not src_path.is_file():
+            raise HTTPException(
+                status_code=400,
+                detail=f"O ficheiro indicado não existe: {clean_local}",
+            )
+        original_filename = src_path.name
+        safe_ext = src_path.suffix or ".mp4"
+        video_path = job_dir / f"source{safe_ext}"
+        shutil.copy2(src_path, video_path)
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Nenhum ficheiro de vídeo foi recebido. Selecione um vídeo ou indique o caminho local.",
+        )
 
     options = {
         "language": language,
@@ -211,7 +364,7 @@ async def create_job(
 
     JOBS_STATE[job_id] = {
         "job_id": job_id,
-        "original_filename": video.filename,
+        "original_filename": original_filename,
         "created_at": datetime.now().isoformat(),
         "status": "processing",
         "step": "upload",
@@ -230,7 +383,6 @@ async def create_job(
 
 @app.get("/api/jobs/{job_id}")
 async def get_job_status(job_id: str):
-    """Devolve o estado atual do processamento, transcrição e lista de clips gerados."""
     job = _load_job_state(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada.")
@@ -239,7 +391,6 @@ async def get_job_status(job_id: str):
 
 @app.get("/api/jobs/{job_id}/clips/{filename}")
 async def download_single_clip(job_id: str, filename: str, download: bool = False):
-    """Permite pré-visualizar no browser ou descarregar um clip ou legenda individual."""
     clip_path = JOBS_DIR / job_id / "clips" / filename
     if not clip_path.exists():
         raise HTTPException(status_code=404, detail="Ficheiro de clip não encontrado.")
@@ -254,7 +405,6 @@ async def download_single_clip(job_id: str, filename: str, download: bool = Fals
 
 @app.get("/api/jobs/{job_id}/download-all")
 async def download_all_clips(job_id: str):
-    """Descarrega um ficheiro ZIP com a pasta completa de clips prontos a publicar."""
     zip_path = JOBS_DIR / job_id / "clips_prontos.zip"
     if not zip_path.exists():
         raise HTTPException(
@@ -277,7 +427,6 @@ class CustomCutRequest(BaseModel):
 
 @app.post("/api/jobs/{job_id}/custom-cut")
 async def create_custom_cut(job_id: str, req: CustomCutRequest):
-    """Permite ao utilizador ajustar manualmente os tempos de um corte ou criar um novo clip."""
     job = _load_job_state(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada.")

@@ -36,15 +36,42 @@
         Carregue um podcast, aula gravada ou emissão em direto. A IA encontra as ideias marcantes, histórias e respostas inesperadas automaticamente.
       </p>
 
-      <form id="uploadForm">
-        <label for="videoInput" class="dropzone" id="dropzone">
-          <input type="file" id="videoInput" name="video" accept="video/*,audio/*" required hidden />
+      <form id="uploadForm" novalidate>
+        <div class="dropzone" id="dropzone">
+          <input
+            type="file"
+            id="videoInput"
+            name="video"
+            class="file-input-overlay"
+            accept="video/*,audio/*,.mp4,.mkv,.mov,.avi,.webm,.flv,.wmv,.m4v,.ts,.3gp,.mp3,.wav,.m4a,.aac,.ogg"
+          />
           <div class="dropzone-content">
-            <div class="drop-icon">🎬</div>
-            <p class="drop-title" id="selectedFileName">Arraste o seu vídeo para aqui ou clique para selecionar</p>
-            <span class="drop-hint">Suporta MP4, MKV, MOV, WEBM (Podcasts, Aulas, Diretos)</span>
+            <div class="drop-icon" id="dropIcon">🎬</div>
+            <p class="drop-title" id="selectedFileName">
+              Arraste o seu vídeo para aqui ou clique para escolher no computador
+            </p>
+            <span class="drop-hint" id="selectedFileHint">
+              Suporta MP4, MKV, MOV, AVI, WEBM, MP3, WAV (qualquer tamanho)
+            </span>
+            <div style="margin-top: 0.85rem;">
+              <button type="button" class="btn-secondary" id="browseBtn" style="position: relative; z-index: 5;">
+                📂 Procurar Vídeo no Computador
+              </button>
+            </div>
           </div>
-        </label>
+        </div>
+
+        <div class="field" style="margin-bottom: 1.25rem;">
+          <label for="localVideoPath">
+            Ou cole diretamente o caminho local do ficheiro no PC (opcional — ideal para vídeos muito grandes):
+          </label>
+          <input
+            type="text"
+            id="localVideoPath"
+            name="local_video_path"
+            placeholder="Ex: C:\Users\HP\Videos\meu_podcast.mp4"
+          />
+        </div>
 
         <div class="settings-grid">
           <div class="field">
@@ -70,15 +97,15 @@
           <div class="field">
             <label for="llmProvider">Motor de IA (Seleção de Momentos)</label>
             <select id="llmProvider" name="llm_provider">
-              <option value="gemini" selected>Google Gemini API</option>
+              <option value="local" selected>Heurístico Local (Sem chave API - Imediato)</option>
+              <option value="gemini">Google Gemini API</option>
               <option value="openai">OpenAI (GPT-4o-mini / GPT-4o)</option>
               <option value="ollama">Ollama Local (Llama 3 / Mistral)</option>
-              <option value="local">Heurístico Local (Sem chave API)</option>
             </select>
           </div>
 
           <div class="field" id="apiKeyField">
-            <label for="apiKey">Chave de API (opcional se definida no .env)</label>
+            <label for="apiKey">Chave de API (se usar Gemini ou OpenAI)</label>
             <input type="password" id="apiKey" name="api_key" placeholder="Cole aqui a sua GEMINI_API_KEY ou OPENAI_API_KEY" />
           </div>
 

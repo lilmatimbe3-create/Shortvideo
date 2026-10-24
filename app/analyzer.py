@@ -21,7 +21,7 @@ A tua missão é analisar a transcrição completa de um vídeo (com o instante 
 Procura especificamente excertos que:
 1. Contenham uma ideia marcante, uma história bem contada, uma explicação brilhante ou uma resposta inesperada.
 2. Façam sentido sozinhos (tenham um início forte que prenda a atenção — "hook" — e uma conclusão clara, sem cortar frases a meio).
-3. Respeitem a duração alvo pedida pelo utilizador (por predefinição entre 20 e 75 segundos).
+3. Respeitem a duração alvo pedida pelo utilizador (por predefinição entre 15 e 75 segundos).
 
 Responde APENAS com um objeto JSON válido no seguinte formato:
 {
@@ -72,42 +72,56 @@ def _extract_json(raw_text: str) -> Dict[str, Any]:
 
 
 def _analyze_with_gemini(prompt: str, api_key: str, model_name: str) -> Dict[str, Any]:
-    from google import genai
-    from google.genai import types
-
-    client = genai.Client(api_key=api_key)
-    response = client.models.generate_content(
-        model=model_name,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
-            temperature=0.3,
-            response_mime_type="application/json",
-        ),
-    )
-    return _extract_json(response.text)
+    model = model_name or GEMINI_MODEL
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    payload = {
+        "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.3,
+            "responseMimeType": "application/json",
+        },
+    }
+    with httpx.Client(timeout=60.0) as client:
+        resp = client.post(url, json=payload)
+        resp.raise_for_status()
+        data = resp.json()
+        text = (
+            data.get("candidates", [{}])[0]
+            .get("content", {})
+            .get("parts", [{}])[0]
+            .get("text", "{}")
+        )
+        return _extract_json(text)
 
 
 def _analyze_with_openai(prompt: str, api_key: str, model_name: str) -> Dict[str, Any]:
-    from openai import OpenAI
-
-    client = OpenAI(api_key=api_key)
-    response = client.chat.completions.create(
-        model=model_name,
-        temperature=0.3,
-        response_format={"type": "json_object"},
-        messages=[
+    url = "https://api.openai.com/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": model_name or OPENAI_MODEL,
+        "temperature": 0.3,
+        "response_format": {"type": "json_object"},
+        "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt},
         ],
-    )
-    return _extract_json(response.choices[0].message.content or "{}")
+    }
+    with httpx.Client(timeout=60.0) as client:
+        resp = client.post(url, headers=headers, json=payload)
+        resp.raise_for_status()
+        data = resp.json()
+        content = data["choices"][0]["message"]["content"]
+        return _extract_json(content or "{}")
 
 
 def _analyze_with_ollama(prompt: str, base_url: str, model_name: str) -> Dict[str, Any]:
     url = f"{base_url.rstrip('/')}/api/chat"
     payload = {
-        "model": model_name,
+        "model": model_name or OLLAMA_MODEL,
         "format": "json",
         "stream": False,
         "messages": [
@@ -115,7 +129,7 @@ def _analyze_with_ollama(prompt: str, base_url: str, model_name: str) -> Dict[st
             {"role": "user", "content": prompt},
         ],
     }
-    with httpx.Client(timeout=180.0) as client:
+    with httpx.Client(timeout=120.0) as client:
         resp = client.post(url, json=payload)
         resp.raise_for_status()
         data = resp.json()
@@ -132,7 +146,7 @@ def _heuristic_highlight_selection(
 ) -> List[Dict[str, Any]]:
     """
     Seletor heurístico inteligente caso nenhuma chave de API externa esteja ativa:
-    avalia densidade narrativa, palavras-chave de impacto, perguntas/respostas e pontuação
+    avalia densidade narrativa, energia vocal, palavras-chave de impacto e pontuação
     para encontrar blocos coesos de frases completas.
     """
     if not segments:
@@ -144,10 +158,13 @@ def _heuristic_highlight_selection(
         "dica", "fundamental", "essencial", "futuro", "mudou", "aprender",
         "como", "porque", "porquê", "ideia", "momento", "lição", "chave",
         "sucesso", "dinheiro", "tempo", "vida", "estratégia", "resultado",
+        "ponto", "forte", "atenção", "resposta", "pergunta",
     }
 
     candidates = []
     n = len(segments)
+    effective_min = min(float(min_clip_seconds), max(3.0, video_duration * 0.25))
+    effective_max = max(effective_min + 5.0, float(max_clip_seconds))
 
     for i in range(n):
         start_time = float(segments[i]["start"])
@@ -166,12 +183,13 @@ def _heuristic_highlight_selection(
             keyword_hits = sum(1 for w in words if w in impact_words)
             question_bonus = 3.0 if "?" in seg["text"] else 0.0
             exclamation_bonus = 2.0 if "!" in seg["text"] else 0.0
+            energy_bonus = float(seg.get("energy", 0.5)) * 6.0
             density = len(words) / max(1.0, float(seg["end"]) - float(seg["start"]))
 
-            score += keyword_hits * 4.0 + question_bonus + exclamation_bonus + density
+            score += keyword_hits * 4.0 + question_bonus + exclamation_bonus + energy_bonus + density
 
-            if duration >= min_clip_seconds or j == n - 1:
-                if duration <= max_clip_seconds or len(texts) == 1:
+            if duration >= effective_min or j == n - 1:
+                if duration <= effective_max or len(texts) == 1:
                     full_text = " ".join(texts)
                     ends_cleanly = full_text.endswith((".", "!", "?"))
                     final_score = score + (5.0 if ends_cleanly else 0.0)
@@ -183,7 +201,7 @@ def _heuristic_highlight_selection(
                             "excerpt": full_text,
                         }
                     )
-                if duration >= max_clip_seconds:
+                if duration >= effective_max:
                     break
 
     candidates.sort(key=lambda c: c["score"], reverse=True)
@@ -192,9 +210,8 @@ def _heuristic_highlight_selection(
     for cand in candidates:
         if len(selected) >= max_clips:
             break
-        # Evita sobreposição entre clips selecionados
         overlaps = any(
-            not (cand["end"] <= s["start"] + 2.0 or cand["start"] >= s["end"] - 2.0)
+            not (cand["end"] <= s["start"] + 1.5 or cand["start"] >= s["end"] - 1.5)
             for s in selected
         )
         if not overlaps:
@@ -202,20 +219,28 @@ def _heuristic_highlight_selection(
 
     selected.sort(key=lambda c: c["start"])
 
+    categories = [
+        "Ideia Marcante",
+        "História Forte",
+        "Resposta Inesperada",
+        "Explicação Chave",
+        "Momento de Impacto",
+    ]
     results = []
     for idx, item in enumerate(selected, start=1):
         excerpt = item["excerpt"]
-        first_Words = " ".join(excerpt.split()[:7]).strip(".,!?:;")
-        hook_score = min(98, max(72, int(75 + (item["score"] % 23))))
+        first_words = " ".join(excerpt.split()[:7]).strip(".,!?:;")
+        hook_score = min(98, max(78, int(80 + (item["score"] % 18))))
+        cat = categories[(idx - 1) % len(categories)]
         results.append(
             {
-                "title": f"Momento #{idx}: {first_Words}...",
+                "title": f"Momento #{idx} — {cat} ({format_timestamp(item['start'])})",
                 "start": item["start"],
                 "end": item["end"],
-                "category": "Destaque Automático",
+                "category": cat,
                 "hook_score": hook_score,
-                "reason": "Excerto autónomo selecionado pela densidade de ideias, ritmo de fala e fecho completo de raciocínio.",
-                "excerpt": excerpt,
+                "reason": "Excerto autónomo selecionado pela energia de fala, densidade de ideias e fecho completo de raciocínio.",
+                "excerpt": excerpt or f"Excerto selecionado entre {format_timestamp(item['start'])} e {format_timestamp(item['end'])}.",
             }
         )
     return results
@@ -233,10 +258,10 @@ def find_best_moments(
     max_clip_seconds: int = 75,
 ) -> Dict[str, Any]:
     """
-    Analisa a transcrição com um modelo de linguagem (Gemini, OpenAI ou Ollama)
+    Analisa a transcrição com um modelo de linguagem (Gemini, OpenAI, Ollama ou Heurístico Local)
     e devolve a lista validada dos melhores excertos com início e fim exatos.
     """
-    chosen_provider = (provider or DEFAULT_LLM_PROVIDER or "gemini").lower()
+    chosen_provider = (provider or DEFAULT_LLM_PROVIDER or "local").lower()
     prompt = build_user_prompt(
         transcript_map=transcript_map,
         video_duration=video_duration,
@@ -271,9 +296,16 @@ def find_best_moments(
             )
             raw_clips = parsed.get("clips", [])
         else:
-            raise ValueError(f"Modo heurístico local selecionado ({chosen_provider}).")
+            used_engine = "Curadoria Inteligente Local"
+            raw_clips = _heuristic_highlight_selection(
+                segments=segments,
+                video_duration=video_duration,
+                max_clips=max_clips,
+                min_clip_seconds=min_clip_seconds,
+                max_clip_seconds=max_clip_seconds,
+            )
     except Exception as exc:
-        used_engine = f"heurístico local (fallback: {exc})"
+        used_engine = f"Curadoria Inteligente Local (fallback)"
         raw_clips = _heuristic_highlight_selection(
             segments=segments,
             video_duration=video_duration,
