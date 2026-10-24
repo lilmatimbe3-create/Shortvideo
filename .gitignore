@@ -1,0 +1,16 @@
+# Ambientes virtuais e cache Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Variáveis de ambiente e chaves privadas
+.env
+
+# Dados temporários, uploads de vídeos e clips gerados
+data/
+
+# Ficheiros de sistema
+.DS_Store
+Thumbs.db
