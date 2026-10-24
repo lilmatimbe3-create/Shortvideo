@@ -1,14 +1,13 @@
 :root {
-  --bg: #0b0f19;
-  --card-bg: #131b2e;
-  --card-border: #23304d;
-  --text: #f1f5f9;
-  --muted: #94a3b8;
-  --primary: #6366f1;
-  --primary-hover: #4f46e5;
-  --accent: #10b981;
-  --accent-hover: #059669;
-  --warning: #f59e0b;
+  --bg: #000000;
+  --card-bg: #0a0a0a;
+  --card-border: #262626;
+  --text: #ffffff;
+  --muted: #a3a3a3;
+  --primary: #ffffff;
+  --primary-hover: #e5e5e5;
+  --accent: #ffffff;
+  --accent-hover: #d4d4d4;
 }
 
 * {
@@ -32,7 +31,7 @@ body {
 }
 
 .topbar {
-  background: rgba(19, 27, 46, 0.9);
+  background: rgba(0, 0, 0, 0.92);
   border-bottom: 1px solid var(--card-border);
   padding: 1rem 0;
   position: sticky;
@@ -56,18 +55,19 @@ body {
 }
 
 .brand-badge {
-  background: linear-gradient(135deg, #6366f1, #ec4899);
-  color: white;
-  font-weight: 800;
+  background: #ffffff;
+  color: #000000;
+  font-weight: 900;
   font-size: 0.95rem;
-  padding: 0.55rem 0.7rem;
-  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
   letter-spacing: 0.5px;
 }
 
 .brand h1 {
   font-size: 1.25rem;
   font-weight: 700;
+  color: #ffffff;
 }
 
 .brand p {
@@ -80,8 +80,8 @@ body {
   align-items: center;
   gap: 0.45rem;
   font-size: 0.8rem;
-  color: var(--muted);
-  background: rgba(255, 255, 255, 0.03);
+  color: #d4d4d4;
+  background: #111111;
   padding: 0.45rem 0.85rem;
   border-radius: 999px;
   border: 1px solid var(--card-border);
@@ -97,14 +97,15 @@ body {
 .card {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  border-radius: 16px;
+  border-radius: 14px;
   padding: 1.75rem;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
 }
 
 .card h2 {
   font-size: 1.3rem;
   margin-bottom: 0.35rem;
+  color: #ffffff;
 }
 
 .subtitle {
@@ -121,12 +122,12 @@ body {
 .dropzone {
   position: relative;
   display: block;
-  border: 2px dashed #3b4d71;
-  border-radius: 14px;
+  border: 2px dashed #404040;
+  border-radius: 12px;
   padding: 2.2rem 1.5rem;
   text-align: center;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.015);
+  background: #050505;
   transition: all 0.2s ease;
   margin-bottom: 1rem;
   overflow: hidden;
@@ -144,25 +145,27 @@ body {
 
 .dropzone:hover,
 .dropzone.dragover {
-  border-color: var(--primary);
-  background: rgba(99, 102, 241, 0.08);
+  border-color: #ffffff;
+  background: #121212;
 }
 
 .dropzone.has-file {
-  border-color: var(--accent);
+  border-color: #ffffff;
   border-style: solid;
-  background: rgba(16, 185, 129, 0.08);
+  background: #141414;
 }
 
 .drop-icon {
   font-size: 2.3rem;
   margin-bottom: 0.5rem;
+  filter: grayscale(100%);
 }
 
 .drop-title {
   font-weight: 600;
   font-size: 1.05rem;
   margin-bottom: 0.25rem;
+  color: #ffffff;
 }
 
 .drop-hint {
@@ -187,16 +190,16 @@ body {
 .field label {
   font-size: 0.83rem;
   font-weight: 600;
-  color: #cbd5e1;
+  color: #e5e5e5;
 }
 
 input[type="text"],
 input[type="password"],
 input[type="number"],
 select {
-  background: #0b1120;
-  border: 1px solid var(--card-border);
-  color: var(--text);
+  background: #000000;
+  border: 1px solid #333333;
+  color: #ffffff;
   padding: 0.62rem 0.75rem;
   border-radius: 8px;
   font-size: 0.92rem;
@@ -205,7 +208,7 @@ select {
 input:focus,
 select:focus {
   outline: none;
-  border-color: var(--primary);
+  border-color: #ffffff;
 }
 
 .inline-inputs {
@@ -219,16 +222,16 @@ select:focus {
 }
 
 .advanced-box {
-  background: rgba(15, 23, 42, 0.65);
+  background: #050505;
   border: 1px solid var(--card-border);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 1rem 1.25rem;
   margin-bottom: 1.4rem;
 }
 
 .advanced-box h3 {
   font-size: 0.9rem;
-  color: #cbd5e1;
+  color: #ffffff;
   margin-bottom: 0.75rem;
 }
 
@@ -244,12 +247,13 @@ select:focus {
   gap: 0.55rem;
   font-size: 0.88rem;
   cursor: pointer;
+  color: #e5e5e5;
 }
 
 .checkbox-label input {
   width: 17px;
   height: 17px;
-  accent-color: var(--primary);
+  accent-color: #ffffff;
 }
 
 /* Buttons */
@@ -260,52 +264,54 @@ select:focus {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border: none;
-  border-radius: 10px;
-  font-weight: 600;
+  border-radius: 8px;
+  font-weight: 700;
   cursor: pointer;
   text-decoration: none;
-  transition: transform 0.1s ease, background 0.2s ease;
+  transition: transform 0.1s ease, background 0.2s ease, color 0.2s ease;
 }
 
 .btn-primary {
   width: 100%;
   padding: 0.9rem 1.25rem;
   font-size: 1rem;
-  background: linear-gradient(135deg, var(--primary), #8b5cf6);
-  color: white;
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #ffffff;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, var(--primary-hover), #7c3aed);
+  background: #e5e5e5;
 }
 
 .btn-primary:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .btn-success {
-  padding: 0.7rem 1.2rem;
-  font-size: 0.92rem;
-  background: var(--accent);
-  color: white;
+  padding: 0.65rem 1.15rem;
+  font-size: 0.9rem;
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #ffffff;
 }
 
 .btn-success:hover {
-  background: var(--accent-hover);
+  background: #d4d4d4;
 }
 
 .btn-secondary {
   padding: 0.62rem 1rem;
   font-size: 0.88rem;
-  background: #1e293b;
-  color: var(--text);
-  border: 1px solid #334155;
+  background: #141414;
+  color: #ffffff;
+  border: 1px solid #404040;
 }
 
 .btn-secondary:hover {
-  background: #334155;
+  background: #262626;
+  border-color: #ffffff;
 }
 
 /* Progress & Pipeline */
@@ -316,17 +322,18 @@ select:focus {
 }
 
 .progress-badge {
-  background: rgba(99, 102, 241, 0.2);
-  color: #a5b4fc;
-  font-weight: 700;
-  padding: 0.4rem 0.85rem;
+  background: #ffffff;
+  color: #000000;
+  font-weight: 800;
+  padding: 0.35rem 0.85rem;
   border-radius: 999px;
 }
 
 .progress-bar-track {
   width: 100%;
   height: 10px;
-  background: #0b1120;
+  background: #171717;
+  border: 1px solid #262626;
   border-radius: 999px;
   overflow: hidden;
   margin-bottom: 1.5rem;
@@ -334,7 +341,7 @@ select:focus {
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary), #ec4899);
+  background: #ffffff;
   transition: width 0.35s ease;
 }
 
@@ -350,27 +357,29 @@ select:focus {
   gap: 0.75rem;
   padding: 0.75rem;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.02);
+  background: #050505;
   border: 1px solid var(--card-border);
-  opacity: 0.55;
+  opacity: 0.45;
 }
 
 .step-item.active {
   opacity: 1;
-  border-color: var(--primary);
-  background: rgba(99, 102, 241, 0.12);
+  border-color: #ffffff;
+  background: #171717;
 }
 
 .step-item.done {
   opacity: 1;
-  border-color: var(--accent);
+  border-color: #737373;
+  background: #0f0f0f;
 }
 
 .step-dot {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #1e293b;
+  background: #262626;
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -378,14 +387,10 @@ select:focus {
   font-size: 0.85rem;
 }
 
-.step-item.active .step-dot {
-  background: var(--primary);
-  color: white;
-}
-
+.step-item.active .step-dot,
 .step-item.done .step-dot {
-  background: var(--accent);
-  color: white;
+  background: #ffffff;
+  color: #000000;
 }
 
 .step-item small {
@@ -404,10 +409,10 @@ select:focus {
 }
 
 .folder-banner {
-  background: #0b1120;
+  background: #000000;
   border: 1px solid var(--card-border);
   padding: 0.75rem 1rem;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 0.86rem;
   margin-bottom: 1.5rem;
   display: flex;
@@ -417,7 +422,7 @@ select:focus {
 }
 
 .folder-banner code {
-  color: #38bdf8;
+  color: #ffffff;
   font-family: Consolas, monospace;
 }
 
@@ -428,21 +433,22 @@ select:focus {
 }
 
 .clip-card {
-  background: #0b1120;
+  background: #000000;
   border: 1px solid var(--card-border);
-  border-radius: 14px;
+  border-radius: 12px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
 .clip-video-wrap {
-  background: #000;
+  background: #000000;
   position: relative;
   aspect-ratio: 16 / 9;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-bottom: 1px solid var(--card-border);
 }
 
 .clip-video-wrap.vertical {
@@ -472,39 +478,41 @@ select:focus {
 }
 
 .badge-category {
-  background: rgba(99, 102, 241, 0.16);
-  color: #a5b4fc;
+  background: #1a1a1a;
+  color: #ffffff;
+  border: 1px solid #333333;
   padding: 0.22rem 0.6rem;
   border-radius: 6px;
   font-weight: 600;
 }
 
 .badge-score {
-  background: rgba(16, 185, 129, 0.16);
-  color: #34d399;
+  background: #ffffff;
+  color: #000000;
   padding: 0.22rem 0.6rem;
   border-radius: 6px;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .clip-title {
   font-size: 1.02rem;
   font-weight: 700;
+  color: #ffffff;
 }
 
 .clip-time {
   font-size: 0.82rem;
-  color: #38bdf8;
+  color: #d4d4d4;
   font-family: Consolas, monospace;
 }
 
 .clip-reason {
   font-size: 0.84rem;
-  color: #cbd5e1;
-  background: rgba(255, 255, 255, 0.03);
+  color: #e5e5e5;
+  background: #0f0f0f;
   padding: 0.55rem 0.7rem;
-  border-radius: 8px;
-  border-left: 3px solid var(--primary);
+  border-radius: 6px;
+  border-left: 3px solid #ffffff;
 }
 
 .clip-excerpt {
@@ -524,11 +532,12 @@ select:focus {
   gap: 0.5rem;
 }
 
-.clip-footer a {
+.clip-footer a,
+.clip-footer button {
   flex: 1;
   text-align: center;
   font-size: 0.82rem;
-  padding: 0.5rem;
+  padding: 0.55rem;
 }
 
 /* Transcript Map */
@@ -537,7 +546,7 @@ select:focus {
   flex-wrap: wrap;
   gap: 0.75rem;
   align-items: center;
-  background: #0b1120;
+  background: #000000;
   padding: 0.9rem;
   border-radius: 10px;
   border: 1px solid var(--card-border);
@@ -563,7 +572,7 @@ select:focus {
 .transcript-list {
   max-height: 380px;
   overflow-y: auto;
-  background: #0b1120;
+  background: #000000;
   border: 1px solid var(--card-border);
   border-radius: 10px;
   padding: 0.75rem;
@@ -576,19 +585,20 @@ select:focus {
   display: flex;
   gap: 0.85rem;
   padding: 0.5rem 0.65rem;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: background 0.15s ease;
   font-size: 0.88rem;
 }
 
 .segment-row:hover {
-  background: rgba(99, 102, 241, 0.12);
+  background: #1a1a1a;
 }
 
 .segment-time {
   font-family: Consolas, monospace;
-  color: #38bdf8;
+  color: #ffffff;
+  font-weight: 600;
   white-space: nowrap;
   font-size: 0.82rem;
 }
