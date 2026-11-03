@@ -104,6 +104,21 @@ async def index():
     return HTMLResponse(index_file.read_text(encoding="utf-8"))
 
 
+@app.get("/relatorio")
+async def download_report():
+    """Permite baixar diretamente o relatório técnico de 20 páginas em formato Word (.docx)."""
+    report_path = STATIC_DIR / "Relatorio_ShortVideo_AI_Studio.docx"
+    if not report_path.exists():
+        report_path = STATIC_DIR.parent / "Relatorio_ShortVideo_AI_Studio.docx"
+    if not report_path.exists():
+        raise HTTPException(status_code=404, detail="Relatório Word não encontrado.")
+    return FileResponse(
+        str(report_path),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        filename="Relatorio_ShortVideo_AI_Studio.docx",
+    )
+
+
 @app.get("/api/environment")
 async def get_environment():
     return {
