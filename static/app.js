@@ -60,10 +60,26 @@ function setChosenFile(file) {
   localObjectUrl = URL.createObjectURL(file);
 
   const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-  dropIcon.textContent = "✅";
+  dropIcon.innerHTML = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
   selectedFileName.textContent = `Vídeo selecionado: ${file.name}`;
   selectedFileHint.textContent = `Tamanho: ${sizeMB} MB — Pronto para analisar e cortar`;
   dropzone.classList.add("has-file");
+
+  const previewBar = document.getElementById("sourcePreviewBar");
+  const previewVideo = document.getElementById("sourcePreviewVideo");
+  const previewTitle = document.getElementById("previewTitle");
+  const previewMeta = document.getElementById("previewMeta");
+  if (previewBar && previewVideo) {
+    previewBar.classList.remove("hidden");
+    previewVideo.src = localObjectUrl;
+    if (previewTitle) previewTitle.textContent = file.name;
+    if (previewMeta) previewMeta.textContent = `${sizeMB} MB • Carregado localmente no estúdio`;
+    previewVideo.onloadedmetadata = () => {
+      if (previewMeta && Number.isFinite(previewVideo.duration)) {
+        previewMeta.textContent = `${sizeMB} MB • Duração: ${formatTime(previewVideo.duration)} • Pronto a cortar`;
+      }
+    };
+  }
 }
 
 if (browseBtn) {

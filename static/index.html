@@ -3,38 +3,88 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ShortVideo AI — Transforme Vídeos Longos em Clips Virais</title>
+  <title>ShortVideo Studio — Transforme Vídeos Longos em Clips Virais</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' fill='none'%3E%3Crect width='40' height='40' rx='10' fill='%23ffffff'/%3E%3Cpath d='M11 12.5C11 11.1193 12.1193 10 13.5 10H26.5C27.8807 10 29 11.1193 29 12.5V27.5C29 28.8807 27.8807 30 26.5 30H13.5C12.1193 30 11 28.8807 11 27.5V12.5Z' stroke='%23000000' stroke-width='2.2'/%3E%3Cpath d='M17.5 16L24.5 20L17.5 24V16Z' fill='%23000000'/%3E%3Cpath d='M31 7L32.2 9.8L35 11L32.2 12.2L31 15L29.8 12.2L27 11L29.8 9.8L31 7Z' fill='%23000000'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
+  <div class="bg-grid-overlay"></div>
+
   <header class="topbar">
     <div class="container topbar-inner">
-      <div class="brand">
-        <span class="brand-badge">IA</span>
-        <div>
-          <h1>ShortVideo Studio</h1>
-          <p>De podcasts, aulas e diretos longos para clips curtos prontos a publicar</p>
+      <a href="/" class="brand" aria-label="ShortVideo Studio">
+        <div class="brand-logo" title="ShortVideo Studio">
+          <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-svg">
+            <rect x="2" y="2" width="40" height="40" rx="11" fill="#FFFFFF" />
+            <!-- Moldura de filme vertical 9:16 estilizada -->
+            <rect x="12" y="8" width="18" height="28" rx="4" fill="#000000" />
+            <!-- Perfurações laterais de cinema -->
+            <rect x="14.5" y="11" width="2" height="2.5" rx="0.7" fill="#FFFFFF" opacity="0.55" />
+            <rect x="14.5" y="30.5" width="2" height="2.5" rx="0.7" fill="#FFFFFF" opacity="0.55" />
+            <!-- Prisma Play central -->
+            <path d="M18.5 17.2L26 22L18.5 26.8V17.2Z" fill="#FFFFFF" />
+            <!-- Estrela / Faísca de Inteligência Artificial no canto superior direito -->
+            <circle cx="32" cy="12" r="6.5" fill="#000000" />
+            <path d="M32 7.2L33.3 10.7L36.8 12L33.3 13.3L32 16.8L30.7 13.3L27.2 12L30.7 10.7L32 7.2Z" fill="#FFFFFF" />
+          </svg>
         </div>
-      </div>
-      <div class="workflow-pills">
-        <span>1. Extrair Áudio</span>
-        <span>→</span>
-        <span>2. Transcrever Mapa</span>
-        <span>→</span>
-        <span>3. IA Escolhe Momentos</span>
-        <span>→</span>
-        <span>4. Cortar Clips</span>
-      </div>
+        <div class="brand-text">
+          <div class="brand-title-row">
+            <h1>ShortVideo Studio</h1>
+            <span class="version-pill">PRO</span>
+          </div>
+          <p>Curadoria e corte automático de clips virais</p>
+        </div>
+      </a>
+
+      <nav class="workflow-pills" aria-label="Fluxo de trabalho">
+        <span class="pill-step">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          1. Áudio
+        </span>
+        <span class="pill-sep">/</span>
+        <span class="pill-step">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          2. Mapa
+        </span>
+        <span class="pill-sep">/</span>
+        <span class="pill-step">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          3. Seleção
+        </span>
+        <span class="pill-sep">/</span>
+        <span class="pill-step">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+          4. Clips
+        </span>
+      </nav>
     </div>
   </header>
 
   <main class="container main-grid">
+    <!-- Hero Banner Minimalista -->
+    <section class="hero-banner">
+      <div class="hero-tag">
+        <span class="pulse-dot"></span>
+        Estúdio Automático para TikTok, Reels & YouTube Shorts
+      </div>
+      <h2 class="hero-title">Transforme horas de vídeo em momentos inesquecíveis.</h2>
+      <p class="hero-desc">
+        Entregue um podcast, aula gravada ou emissão em direto. O sistema transcreve cada frase ao segundo, identifica as ideias mais fortes e recorta múltiplos clips prontos a publicar.
+      </p>
+    </section>
+
     <!-- Painel de Upload e Configuração -->
     <section class="card upload-card">
-      <h2>1. Entregar Vídeo ao Programa</h2>
-      <p class="subtitle">
-        Carregue um podcast, aula gravada ou emissão em direto. A IA encontra as ideias marcantes, histórias e respostas inesperadas automaticamente.
-      </p>
+      <div class="card-section-header">
+        <div>
+          <span class="section-eyebrow">ETAPA 01</span>
+          <h2>Fonte de Vídeo & Parâmetros de Corte</h2>
+        </div>
+      </div>
 
       <form id="uploadForm" novalidate>
         <div class="dropzone" id="dropzone">
@@ -46,24 +96,41 @@
             accept="video/*,audio/*,.mp4,.mkv,.mov,.avi,.webm,.flv,.wmv,.m4v,.ts,.3gp,.mp3,.wav,.m4a,.aac,.ogg"
           />
           <div class="dropzone-content">
-            <div class="drop-icon" id="dropIcon">🎬</div>
+            <div class="drop-icon-circle" id="dropIcon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+            </div>
             <p class="drop-title" id="selectedFileName">
               Arraste o seu vídeo para aqui ou clique para escolher no computador
             </p>
             <span class="drop-hint" id="selectedFileHint">
-              Suporta MP4, MKV, MOV, AVI, WEBM, MP3, WAV (qualquer tamanho)
+              MP4, MKV, MOV, AVI, WEBM, MP3, WAV • Podcasts, Aulas e Diretos
             </span>
-            <div style="margin-top: 0.85rem;">
+            <div class="dropzone-actions">
               <button type="button" class="btn-secondary" id="browseBtn" style="position: relative; z-index: 5;">
-                📂 Procurar Vídeo no Computador
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                Escolher Ficheiro de Vídeo
               </button>
             </div>
           </div>
         </div>
 
-        <div class="field" style="margin-bottom: 1.25rem;">
+        <!-- Pré-visualização rápida do vídeo selecionado -->
+        <div class="source-preview-bar hidden" id="sourcePreviewBar">
+          <video id="sourcePreviewVideo" controls preload="metadata"></video>
+          <div class="source-preview-info">
+            <span class="preview-badge">VÍDEO CARREGADO</span>
+            <strong id="previewTitle">video.mp4</strong>
+            <p id="previewMeta">Pronto para extrair áudio e selecionar momentos.</p>
+          </div>
+        </div>
+
+        <div class="field local-path-field">
           <label for="localVideoPath">
-            Ou cole diretamente o caminho local do ficheiro no PC (opcional — ideal para vídeos muito grandes):
+            Caminho local direto no PC <span class="label-optional">(opcional — para ficheiros locais de grande dimensão)</span>
           </label>
           <input
             type="text"
@@ -75,71 +142,84 @@
 
         <div class="settings-grid">
           <div class="field">
-            <label for="language">Idioma do Vídeo</label>
+            <label for="language">Idioma Falado</label>
             <select id="language" name="language">
-              <option value="pt" selected>Português (pt)</option>
-              <option value="en">Inglês (en)</option>
-              <option value="es">Espanhol (es)</option>
+              <option value="pt" selected>Português (PT / BR)</option>
+              <option value="en">Inglês (EN)</option>
+              <option value="es">Espanhol (ES)</option>
               <option value="auto">Deteção Automática</option>
             </select>
           </div>
 
           <div class="field">
-            <label for="whisperModel">Modelo de Transcrição (Whisper Local)</label>
+            <label for="whisperModel">Precisão da Transcrição (Whisper)</label>
             <select id="whisperModel" name="whisper_model">
-              <option value="tiny">Tiny (Mais rápido)</option>
-              <option value="base" selected>Base (Equilibrado - Recomendado)</option>
-              <option value="small">Small (Maior precisão)</option>
-              <option value="medium">Medium (Alta precisão)</option>
+              <option value="tiny">Tiny — Ultra rápido</option>
+              <option value="base" selected>Base — Equilibrado (Recomendado)</option>
+              <option value="small">Small — Alta precisão</option>
+              <option value="medium">Medium — Máxima detalhe</option>
             </select>
           </div>
 
           <div class="field">
-            <label for="llmProvider">Motor de IA (Seleção de Momentos)</label>
+            <label for="llmProvider">Motor de Curadoria Inteligente</label>
             <select id="llmProvider" name="llm_provider">
-              <option value="local" selected>Heurístico Local (Sem chave API - Imediato)</option>
-              <option value="gemini">Google Gemini API</option>
-              <option value="openai">OpenAI (GPT-4o-mini / GPT-4o)</option>
+              <option value="local" selected>Curadoria Local (Sem chave API — Imediato)</option>
+              <option value="gemini">Google Gemini (2.5 Flash / Pro)</option>
+              <option value="openai">OpenAI (GPT-4o / GPT-4o-mini)</option>
               <option value="ollama">Ollama Local (Llama 3 / Mistral)</option>
             </select>
           </div>
 
           <div class="field" id="apiKeyField">
-            <label for="apiKey">Chave de API (se usar Gemini ou OpenAI)</label>
-            <input type="password" id="apiKey" name="api_key" placeholder="Cole aqui a sua GEMINI_API_KEY ou OPENAI_API_KEY" />
+            <label for="apiKey">Chave de API <span class="label-optional">(se usar Gemini / OpenAI)</span></label>
+            <input type="password" id="apiKey" name="api_key" placeholder="Insira a chave de API..." />
           </div>
 
           <div class="field">
-            <label for="maxClips">N.º Máximo de Clips</label>
+            <label for="maxClips">Quantidade de Clips a Gerar</label>
             <input type="number" id="maxClips" name="max_clips" value="5" min="1" max="15" />
           </div>
 
           <div class="field">
-            <label for="minDuration">Duração Mín. / Máx. (segundos)</label>
+            <label for="minDuration">Janela de Duração por Clip (segundos)</label>
             <div class="inline-inputs">
               <input type="number" id="minDuration" name="min_duration" value="15" min="5" max="120" title="Duração mínima" />
-              <span>até</span>
+              <span class="range-sep">até</span>
               <input type="number" id="maxDuration" name="max_duration" value="65" min="15" max="180" title="Duração máxima" />
             </div>
           </div>
         </div>
 
         <div class="advanced-box">
-          <h3>Opções Avançadas (TikTok, Instagram Reels & YouTube Shorts)</h3>
+          <div class="advanced-header">
+            <h3>Acabamento para Redes Sociais</h3>
+            <span>TikTok • Instagram Reels • YouTube Shorts</span>
+          </div>
           <div class="toggles-row">
-            <label class="checkbox-label">
+            <label class="switch-card" for="verticalCrop">
               <input type="checkbox" id="verticalCrop" name="vertical_crop" />
-              <span><strong>Formato Vertical (9:16)</strong> — Ajustar enquadramento para 1080×1920</span>
+              <span class="switch-slider"></span>
+              <div class="switch-text">
+                <strong>Formato Vertical (9:16)</strong>
+                <small>Enquadramento centrado 1080×1920</small>
+              </div>
             </label>
-            <label class="checkbox-label">
+
+            <label class="switch-card" for="burnSubtitles">
               <input type="checkbox" id="burnSubtitles" name="burn_subtitles" />
-              <span><strong>Legendas Automáticas no Vídeo</strong> — Embutir legendas sincronizadas no MP4</span>
+              <span class="switch-slider"></span>
+              <div class="switch-text">
+                <strong>Legendas Automáticas no Vídeo</strong>
+                <small>Embutir legendas dinâmicas sincronizadas</small>
+              </div>
             </label>
           </div>
         </div>
 
         <button type="submit" class="btn-primary" id="submitBtn">
-          ✨ Analisar Vídeo e Gerar Clips Curtos
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <span>Analisar Vídeo e Gerar Clips Curtos</span>
         </button>
       </form>
     </section>
@@ -148,8 +228,9 @@
     <section class="card status-card hidden" id="statusSection">
       <div class="status-header">
         <div>
+          <span class="section-eyebrow">PROCESSAMENTO EM CURSO</span>
           <h2 id="statusTitle">A processar o seu vídeo...</h2>
-          <p id="statusMessage" class="subtitle">A preparar pipeline de inteligência artificial...</p>
+          <p id="statusMessage" class="subtitle">A preparar pipeline de análise e corte...</p>
         </div>
         <span class="progress-badge" id="progressPercent">0%</span>
       </div>
@@ -160,28 +241,28 @@
 
       <div class="pipeline-steps">
         <div class="step-item" data-step="audio">
-          <span class="step-dot">1</span>
+          <span class="step-dot">01</span>
           <div>
             <strong>Extração de Áudio</strong>
-            <small>FFmpeg WAV 16kHz</small>
+            <small>Isolamento de voz</small>
           </div>
         </div>
         <div class="step-item" data-step="transcription">
-          <span class="step-dot">2</span>
+          <span class="step-dot">02</span>
           <div>
             <strong>Transcrição & Mapa</strong>
             <small>Início e fim de cada frase</small>
           </div>
         </div>
         <div class="step-item" data-step="analysis">
-          <span class="step-dot">3</span>
+          <span class="step-dot">03</span>
           <div>
-            <strong>Curadoria por IA</strong>
-            <small>Seleção de momentos fortes</small>
+            <strong>Seleção de Momentos</strong>
+            <small>Deteção de excertos fortes</small>
           </div>
         </div>
         <div class="step-item" data-step="cutting">
-          <span class="step-dot">4</span>
+          <span class="step-dot">04</span>
           <div>
             <strong>Recorte dos Clips</strong>
             <small>Ficheiros independentes</small>
@@ -194,7 +275,8 @@
     <section class="card results-card hidden" id="resultsSection">
       <div class="results-header">
         <div>
-          <h2>🎉 Clips Curtos Prontos a Publicar</h2>
+          <span class="section-eyebrow">RESULTADO FINAL</span>
+          <h2>Clips Curtos Prontos a Publicar</h2>
           <p class="subtitle" id="resultsMeta"></p>
         </div>
         <div class="results-actions">
@@ -216,9 +298,10 @@
     <section class="card transcript-card hidden" id="transcriptSection">
       <div class="transcript-header">
         <div>
-          <h2>🗺️ Mapa de Transcrição do Vídeo</h2>
+          <span class="section-eyebrow">TIMELINE INTERATIVA</span>
+          <h2>Mapa de Transcrição do Vídeo</h2>
           <p class="subtitle">
-            Todas as frases registadas com o minuto e segundo exatos em que começam e terminam. Clique num segmento para usar os seus tempos num corte personalizado.
+            Registo do minuto e segundo exatos em que cada frase começa e termina. Clique num segmento para preencher os tempos e criar um corte personalizado.
           </p>
         </div>
       </div>
@@ -226,11 +309,11 @@
       <div class="custom-cut-bar">
         <input type="text" id="customTitle" placeholder="Título do novo clip (ex: Ideia sobre produtividade)" />
         <div class="time-field">
-          <label>Início (s):</label>
+          <label for="customStart">Início (s)</label>
           <input type="number" step="0.1" id="customStart" placeholder="0.0" />
         </div>
         <div class="time-field">
-          <label>Fim (s):</label>
+          <label for="customEnd">Fim (s)</label>
           <input type="number" step="0.1" id="customEnd" placeholder="30.0" />
         </div>
         <button type="button" class="btn-secondary" id="customCutBtn">
@@ -241,6 +324,13 @@
       <div class="transcript-list" id="transcriptList"></div>
     </section>
   </main>
+
+  <footer class="studio-footer">
+    <div class="container footer-inner">
+      <span>ShortVideo Studio — Transformação automática de vídeos longos em clips curtos</span>
+      <span>Formato Original 16:9 & Vertical 9:16 • MP4 & SRT</span>
+    </div>
+  </footer>
 
   <script src="/static/app.js"></script>
 </body>
