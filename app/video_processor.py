@@ -47,7 +47,7 @@ def cut_video_clip(
     if burn_subtitles and srt_path and srt_path.exists() and srt_path.stat().st_size > 0:
         escaped_srt = _escape_ffmpeg_subtitles_path(srt_path)
         vf_filters.append(
-            f"subtitles='{escaped_srt}':force_style='Fontname=Arial,Fontsize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=3,Outline=2,Shadow=1,MarginV=35,Alignment=2'"
+            f"subtitles='{escaped_srt}':force_style='Fontname=Arial,Fontsize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=3,Outline=2.2,Shadow=1,MarginV=35,Alignment=2'"
         )
 
     cmd = [
@@ -87,6 +87,45 @@ def cut_video_clip(
         raise RuntimeError(
             f"Erro ao recortar o clip ({output_path.name}): {result.stderr[-500:]}"
         )
+    return output_path
+
+
+def burn_subtitles_to_clip(
+    input_clip_path: Path,
+    srt_path: Path,
+    output_path: Path,
+) -> Path:
+    """Queima legendas SRT sincronizadas diretamente num clip MP4 já recortado de forma ultra-rápida."""
+    if not srt_path.exists() or srt_path.stat().st_size == 0:
+        raise ValueError("Ficheiro de legendas SRT não encontrado ou vazio.")
+    escaped_srt = _escape_ffmpeg_subtitles_path(srt_path)
+    sub_filter = (
+        f"subtitles='{escaped_srt}':force_style="
+        f"'Fontname=Arial,Fontsize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,"
+        f"BorderStyle=3,Outline=2.2,Shadow=1,MarginV=35,Alignment=2'"
+    )
+    cmd = [
+        FFMPEG_BIN,
+        "-y",
+        "-i",
+        str(input_clip_path),
+        "-vf",
+        sub_filter,
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-crf",
+        "22",
+        "-c:a",
+        "copy",
+        "-movflags",
+        "+faststart",
+        str(output_path),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"Erro ao embutir legendas no clip: {result.stderr[-500:]}")
     return output_path
 
 

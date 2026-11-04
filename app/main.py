@@ -28,12 +28,17 @@ from app.transcriber import (
     write_clip_srt,
 )
 from app.analyzer import find_best_moments, _collect_excerpt_for_range
-from app.video_processor import generate_clips_package, cut_video_clip, slugify_filename
+from app.video_processor import (
+    generate_clips_package,
+    cut_video_clip,
+    burn_subtitles_to_clip,
+    slugify_filename,
+)
 
 app = FastAPI(
     title="ShortVideo AI — Gerador Inteligente de Clips Curtos",
     description="Transforma vídeos longos (podcasts, aulas, diretos) em clips curtos prontos a publicar.",
-    version="1.1.0",
+    version="1.2.0",
 )
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -416,6 +421,70 @@ async def download_single_clip(job_id: str, filename: str, download: bool = Fals
             str(clip_path), media_type=media_type, filename=filename
         )
     return FileResponse(str(clip_path), media_type=media_type)
+
+
+@app.post("/api/jobs/{job_id}/clips/{filename}/burn-subtitles")
+async def burn_subtitles_for_clip(job_id: str, filename: str):
+    """
+    Queima legendas SRT embutidas diretamente no clip solicitado a pedido do utilizador.
+    """
+    job = _load_job_state(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Tarefa não encontrada.")
+
+    clips_dir = JOBS_DIR / job_id / "clips"
+    clip_path = clips_dir / filename
+    if not clip_path.exists():
+        raise HTTPException(status_code=404, detail="Clip de vídeo não encontrado.")
+
+    # Localizar o registo do clip no job
+    target_clip = None
+    for c in job.get("clips", []):
+        if c.get("filename") == filename or c.get("subtitled_filename") == filename:
+            target_clip = c
+            break
+
+    # Encontrar ou reconstruir o ficheiro SRT
+    clean_stem = clip_path.stem.replace("_legendado", "")
+    srt_filename = target_clip.get("srt_filename") if target_clip else f"{clean_stem}.srt"
+    srt_path = clips_dir / srt_filename
+    if not srt_path.exists():
+        srt_path = clips_dir / f"{clean_stem}.srt"
+
+    if not srt_path.exists() or srt_path.stat().st_size == 0:
+        if target_clip and job.get("segments"):
+            write_clip_srt(job["segments"], float(target_clip["start"]), float(target_clip["end"]), srt_path)
+        else:
+            raise HTTPException(status_code=400, detail="Ficheiro de legendas SRT indisponível para este clip.")
+
+    subtitled_filename = f"{clean_stem}_legendado.mp4"
+    subtitled_path = clips_dir / subtitled_filename
+    input_video = clips_dir / f"{clean_stem}.mp4"
+    if not input_video.exists():
+        input_video = clip_path
+
+    burn_subtitles_to_clip(
+        input_clip_path=input_video,
+        srt_path=srt_path,
+        output_path=subtitled_path,
+    )
+
+    subtitled_size_mb = round(subtitled_path.stat().st_size / (1024 * 1024), 2)
+
+    if target_clip:
+        target_clip["subtitled_filename"] = subtitled_filename
+        target_clip["subtitled_size_mb"] = subtitled_size_mb
+        target_clip["has_subtitles"] = True
+        _save_job_state(job_id)
+
+    return {
+        "success": True,
+        "job_id": job_id,
+        "original_filename": filename,
+        "subtitled_filename": subtitled_filename,
+        "subtitled_url": f"/api/jobs/{job_id}/clips/{subtitled_filename}",
+        "subtitled_size_mb": subtitled_size_mb,
+    }
 
 
 @app.get("/api/jobs/{job_id}/download-all")

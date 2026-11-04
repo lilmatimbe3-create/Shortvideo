@@ -28,7 +28,11 @@ if (-not (Test-Path ".venv\Scripts\python.exe")) {
 
 Write-Host "[2/3] A instalar/verificar dependências (FastAPI, faster-whisper, Gemini/OpenAI, FFmpeg)..." -ForegroundColor Green
 & .\.venv\Scripts\python.exe -m pip install --upgrade pip
-& .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+if (Test-Path "requirements-local.txt") {
+    & .\.venv\Scripts\python.exe -m pip install -r requirements-local.txt
+} else {
+    & .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+}
 
 if (-not (Test-Path ".env")) {
     Copy-Item ".env.example" ".env"

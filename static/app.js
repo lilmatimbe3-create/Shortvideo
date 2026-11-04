@@ -1,3 +1,8 @@
+// ==========================================================================
+// ShortVideo AI Studio — Frontend Script
+// Suporte a Tema Claro/Escuro, Curadoria Inteligente e Legendas a Pedido
+// ==========================================================================
+
 const uploadForm = document.getElementById("uploadForm");
 const videoInput = document.getElementById("videoInput");
 const browseBtn = document.getElementById("browseBtn");
@@ -28,6 +33,11 @@ const customStart = document.getElementById("customStart");
 const customEnd = document.getElementById("customEnd");
 const customCutBtn = document.getElementById("customCutBtn");
 
+// Tema Claro / Escuro
+const themeToggleBtn = document.getElementById("themeToggleBtn");
+const themeToggleIcon = document.getElementById("themeToggleIcon");
+const themeToggleLabel = document.getElementById("themeToggleLabel");
+
 let currentJobId = null;
 let currentJobData = null;
 let pollTimer = null;
@@ -35,6 +45,60 @@ let selectedFile = null;
 let localObjectUrl = null;
 let serverEnv = { is_serverless: false, has_ffmpeg: true };
 
+// ==========================================================================
+// Gestão de Tema (Dark / White Mode)
+// ==========================================================================
+function initTheme() {
+  const saved = localStorage.getItem("shortvideo_theme") || "dark";
+  applyTheme(saved, false);
+}
+
+function applyTheme(theme, notify = true) {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("shortvideo_theme", theme);
+  if (themeToggleIcon && themeToggleLabel) {
+    if (theme === "light") {
+      themeToggleIcon.textContent = "🌙";
+      themeToggleLabel.textContent = "Escuro";
+    } else {
+      themeToggleIcon.textContent = "☀️";
+      themeToggleLabel.textContent = "Claro";
+    }
+  }
+  if (notify) {
+    showToast(theme === "light" ? "Tema Claro ativado" : "Tema Escuro ativado");
+  }
+}
+
+if (themeToggleBtn) {
+  themeToggleBtn.addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme") || "dark";
+    const next = current === "light" ? "dark" : "light";
+    applyTheme(next, true);
+  });
+}
+
+initTheme();
+
+// ==========================================================================
+// Notificações Toast Flutuantes
+// ==========================================================================
+function showToast(msg) {
+  const container = document.getElementById("toastContainer");
+  if (!container) return;
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.innerHTML = `<span>✨</span> <span>${msg}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(12px)";
+    toast.style.transition = "all 0.25s ease";
+    setTimeout(() => toast.remove(), 250);
+  }, 3200);
+}
+
+// Consultar ambiente do servidor
 fetch("/api/environment")
   .then((r) => r.json())
   .then((env) => {
@@ -159,7 +223,6 @@ async function inspectVideoInBrowser(file) {
 
 async function extractSegmentsInBrowser(file, duration) {
   const segments = [];
-  // Se o ficheiro tiver até 45 MB, analisamos a energia real do áudio via Web Audio API
   if (file.size <= 45 * 1024 * 1024 && (window.AudioContext || window.webkitAudioContext)) {
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -200,9 +263,7 @@ async function extractSegmentsInBrowser(file, duration) {
       }
       ctx.close();
       if (segments.length > 0) return { duration: realDuration, segments };
-    } catch (_) {
-      // Fallback para segmentação temporal abaixo
-    }
+    } catch (_) {}
   }
 
   const step = Math.max(6, Math.min(15, Math.round(duration / 16)));
@@ -279,7 +340,7 @@ uploadForm.addEventListener("submit", async (e) => {
   const manualPath = localVideoPath ? localVideoPath.value.trim() : "";
 
   if (!fileToSend && !manualPath) {
-    alert("Por favor, escolha primeiro um ficheiro de vídeo clicando em 'Procurar Vídeo no Computador'.");
+    alert("Por favor, escolha primeiro um ficheiro de vídeo clicando em 'Escolher Ficheiro de Vídeo'.");
     return;
   }
 
@@ -288,7 +349,6 @@ uploadForm.addEventListener("submit", async (e) => {
   resultsSection.classList.add("hidden");
   transcriptSection.classList.add("hidden");
 
-  // Em ambiente Serverless (ex: Vercel) ou sem FFmpeg no servidor, processa o vídeo localmente no browser + IA na API sem limite de MB
   if (fileToSend && (serverEnv.is_serverless || !serverEnv.has_ffmpeg || fileToSend.size > 4.2 * 1024 * 1024)) {
     await runBrowserServerlessPipeline(fileToSend);
     return;
@@ -333,7 +393,6 @@ uploadForm.addEventListener("submit", async (e) => {
       statusTitle.textContent = "A processar o seu vídeo com IA...";
       startPollingJob(currentJobId);
     } else if (fileToSend) {
-      // Fallback automático para o modo Browser caso o servidor tenha limite de upload
       await runBrowserServerlessPipeline(fileToSend);
     } else {
       alert("Erro ao enviar o vídeo.");
@@ -437,78 +496,16 @@ function renderResults(job) {
   });
 }
 
-async function exportBrowserClip(videoEl, clip, btnEl) {
-  if (!localObjectUrl) return;
-  const origText = btnEl.textContent;
-  btnEl.disabled = true;
-  btnEl.textContent = "⏳ A gravar corte...";
-
-  try {
-    videoEl.pause();
-    videoEl.currentTime = clip.start;
-    videoEl.muted = false;
-
-    const stream = videoEl.captureStream ? videoEl.captureStream() : videoEl.mozCaptureStream ? videoEl.mozCaptureStream() : null;
-    if (!stream || typeof MediaRecorder === "undefined") {
-      throw new Error("O seu browser não suporta gravação direta de stream.");
-    }
-
-    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
-      ? "video/webm;codecs=vp9,opus"
-      : MediaRecorder.isTypeSupported("video/webm")
-      ? "video/webm"
-      : "";
-
-    const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
-    const chunks = [];
-    recorder.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) chunks.push(e.data);
-    };
-
-    const donePromise = new Promise((resolve) => {
-      recorder.onstop = () => resolve();
-    });
-
-    recorder.start(200);
-    await videoEl.play();
-
-    const checkInterval = setInterval(() => {
-      const elapsed = Math.max(0, videoEl.currentTime - clip.start);
-      const pct = Math.min(99, Math.round((elapsed / Math.max(1, clip.duration)) * 100));
-      btnEl.textContent = `⏺️ A cortar ${pct}%...`;
-      if (videoEl.currentTime >= clip.end || videoEl.ended) {
-        clearInterval(checkInterval);
-        videoEl.pause();
-        if (recorder.state !== "inactive") recorder.stop();
-      }
-    }, 150);
-
-    await donePromise;
-    clearInterval(checkInterval);
-
-    const blob = new Blob(chunks, { type: mimeType || "video/webm" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = clip.filename.replace(/\.mp4$/i, ".webm");
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  } catch (err) {
-    alert("Nota: " + err.message);
-  } finally {
-    btnEl.disabled = false;
-    btnEl.textContent = origText;
-  }
-}
-
 function createClipCard(job, clip) {
   const card = document.createElement("div");
   card.className = "clip-card";
 
   const isBrowserMode = Boolean(job.browser_mode);
+  const isSubtitled = Boolean(clip.has_subtitles || clip.subtitled_filename);
+  const activeFilename = isSubtitled ? clip.subtitled_filename : clip.filename;
   const videoUrl = isBrowserMode
     ? `${localObjectUrl}#t=${clip.start},${clip.end}`
-    : `/api/jobs/${job.job_id}/clips/${encodeURIComponent(clip.filename)}`;
+    : `/api/jobs/${job.job_id}/clips/${encodeURIComponent(activeFilename)}`;
 
   let srtHref = "#";
   if (isBrowserMode) {
@@ -527,24 +524,96 @@ function createClipCard(job, clip) {
     <div class="clip-body">
       <div class="clip-badges">
         <span class="badge-category">${clip.category || "Momento Forte"}</span>
+        ${isSubtitled ? `<span class="badge-subtitled">✨ Legendado</span>` : ""}
         <span class="badge-score">🔥 Potencial: ${clip.hook_score || 90}%</span>
       </div>
       <div class="clip-title">${clip.title}</div>
       <div class="clip-time">⏱️ ${clip.start_formatted} → ${clip.end_formatted} (${clip.duration}s${sizeInfo})</div>
       <div class="clip-reason">💡 <strong>Porquê este corte:</strong> ${clip.reason}</div>
       <div class="clip-excerpt">"${clip.excerpt || ""}"</div>
-      <div class="clip-footer">
+      
+      <div class="clip-actions">
         ${
-          isBrowserMode
-            ? `<button type="button" class="btn-success export-clip-btn">⬇️ Recortar & Baixar Clip</button>`
-            : `<a href="${videoUrl}?download=true" class="btn-success" download>⬇️ MP4</a>`
+          !isBrowserMode
+            ? `
+            <button type="button" class="btn-burn-subtitles ${isSubtitled ? "subtitled" : ""}" data-filename="${clip.filename}">
+              ${isSubtitled ? "✅ Legendas Embutidas no Vídeo" : "💬 Embutir Legendas no Vídeo"}
+            </button>
+            `
+            : ""
         }
-        <a href="${srtHref}" class="btn-secondary" download="${clip.srt_filename || "legendas.srt"}">💬 Legendas (.SRT)</a>
+        <div class="clip-footer">
+          ${
+            isBrowserMode
+              ? `<button type="button" class="btn-success export-clip-btn">⬇️ Recortar & Baixar</button>`
+              : `
+                <a href="${videoUrl}?download=true" class="btn-success download-mp4-link" download>
+                  ${isSubtitled ? "⬇️ Baixar Legendado" : "⬇️ MP4"}
+                </a>
+              `
+          }
+          <a href="${srtHref}" class="btn-secondary" download="${clip.srt_filename || "legendas.srt"}">💬 Legendas (.SRT)</a>
+        </div>
       </div>
     </div>
   `;
 
   const videoEl = card.querySelector("video");
+
+  // Evento do botão de embutir legendas a pedido
+  const burnBtn = card.querySelector(".btn-burn-subtitles");
+  if (burnBtn && !isBrowserMode) {
+    burnBtn.addEventListener("click", async () => {
+      if (burnBtn.disabled) return;
+      burnBtn.disabled = true;
+      const originalText = burnBtn.innerHTML;
+      burnBtn.innerHTML = `<span class="spinner-icon"></span> A embutir legendas com FFmpeg...`;
+
+      try {
+        const res = await fetch(`/api/jobs/${job.job_id}/clips/${encodeURIComponent(clip.filename)}/burn-subtitles`, {
+          method: "POST",
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || "Erro ao embutir legendas.");
+        }
+        const data = await res.json();
+        clip.has_subtitles = true;
+        clip.subtitled_filename = data.subtitled_filename;
+        clip.subtitled_url = data.subtitled_url;
+
+        // Atualizar reprodução de vídeo para o novo ficheiro legendado
+        if (videoEl) {
+          videoEl.src = `${data.subtitled_url}?v=${Date.now()}`;
+          videoEl.load();
+        }
+
+        burnBtn.className = "btn-burn-subtitles subtitled";
+        burnBtn.innerHTML = `✅ Legendas Embutidas no Vídeo`;
+
+        const downloadLink = card.querySelector(".download-mp4-link");
+        if (downloadLink) {
+          downloadLink.href = `${data.subtitled_url}?download=true`;
+          downloadLink.innerHTML = `⬇️ Baixar Legendado`;
+        }
+
+        const badgesEl = card.querySelector(".clip-badges");
+        if (badgesEl && !badgesEl.querySelector(".badge-subtitled")) {
+          const subBadge = document.createElement("span");
+          subBadge.className = "badge-subtitled";
+          subBadge.innerHTML = `✨ Legendado`;
+          badgesEl.insertBefore(subBadge, badgesEl.querySelector(".badge-score"));
+        }
+
+        showToast(`Legendas adicionadas com sucesso ao "${clip.title}"!`);
+      } catch (err) {
+        alert("Erro ao embutir legendas: " + err.message);
+        burnBtn.innerHTML = originalText;
+        burnBtn.disabled = false;
+      }
+    });
+  }
+
   if (isBrowserMode && videoEl) {
     videoEl.addEventListener("loadedmetadata", () => {
       videoEl.currentTime = clip.start;
@@ -600,6 +669,7 @@ customCutBtn.addEventListener("click", async () => {
     currentJobData.clips.push(newClip);
     clipsGrid.appendChild(createClipCard(currentJobData, newClip));
     customTitle.value = "";
+    showToast("Novo clip personalizado criado!");
     return;
   }
 
@@ -622,6 +692,7 @@ customCutBtn.addEventListener("click", async () => {
     const newClip = await res.json();
     clipsGrid.appendChild(createClipCard(currentJobData || { job_id: currentJobId }, newClip));
     customTitle.value = "";
+    showToast("Novo clip personalizado criado com sucesso!");
   } catch (err) {
     alert(err.message);
   } finally {
