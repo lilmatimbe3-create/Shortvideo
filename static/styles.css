@@ -1051,29 +1051,28 @@ select:focus {
 }
 
 .clip-body {
-  padding: 1.15rem;
+  padding: 1rem 1.15rem 1.15rem;
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.6rem;
   flex: 1;
 }
 
-.clip-badges {
+.clip-header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  font-size: 0.74rem;
+  gap: 0.6rem;
 }
 
-.badge-category {
-  background: var(--badge-bg);
-  color: var(--badge-text);
-  border: 1px solid var(--card-border);
-  padding: 0.24rem 0.65rem;
-  border-radius: 6px;
-  font-weight: 600;
+.clip-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .badge-score {
@@ -1083,65 +1082,56 @@ select:focus {
   padding: 0.22rem 0.65rem;
   border-radius: 6px;
   font-weight: 800;
+  font-size: 0.78rem;
+  flex-shrink: 0;
 }
 
-.clip-title {
-  font-size: 1.02rem;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -0.01em;
+.clip-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .clip-time {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
   font-family: "JetBrains Mono", Consolas, monospace;
-}
-
-.clip-reason {
-  font-size: 0.84rem;
-  color: var(--text);
-  background: var(--card-bg);
-  padding: 0.6rem 0.75rem;
-  border-radius: 8px;
-  border-left: 3px solid var(--primary);
-}
-
-.clip-excerpt {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  font-style: italic;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
 .clip-actions {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  margin-top: auto;
-  padding-top: 0.75rem;
-}
-
-.clip-footer {
-  display: flex;
   gap: 0.55rem;
-  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 0.5rem;
 }
 
-.clip-footer a,
-.clip-footer button {
-  flex: 1 1 120px;
-  text-align: center;
-  font-size: 0.84rem;
-  padding: 0.65rem 0.85rem;
+.clip-actions .btn-primary {
+  padding: 0.68rem 1rem;
   min-height: 42px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 0.88rem;
+  border-radius: 9px;
+}
+
+.clip-actions-secondary {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.clip-actions-secondary .btn-secondary {
+  flex: 1;
+  padding: 0.55rem 0.75rem;
+  min-height: 38px;
+  font-size: 0.82rem;
+  border-radius: 8px;
   white-space: nowrap;
+}
+
+.clip-actions-secondary .btn-burn-subtitles.subtitled {
+  background: var(--sub-active-bg);
+  color: var(--sub-active-text);
+  border-color: var(--sub-active-border);
 }
 
 /* Timeline e Corte Manual */

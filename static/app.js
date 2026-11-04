@@ -527,6 +527,8 @@ function createClipCard(job, clip) {
   const isSubtitled = Boolean(clip.has_subtitles || clip.subtitled_filename);
   const activeFilename = isSubtitled ? clip.subtitled_filename : clip.filename;
   const cleanStem = (clip.filename || "").replace(/\.mp4$/i, "");
+  // Remover carimbo de tempo redundante do título (ex: "Momento #1 (00:00.00)" -> "Momento #1")
+  const cleanTitle = (clip.title || "Momento Forte").replace(/\s*\(\d{2}:\d{2}\.\d{2}\)\s*$/, "");
 
   const videoUrl = isBrowserMode
     ? `${localObjectUrl}#t=${clip.start},${clip.end}`
@@ -557,31 +559,31 @@ function createClipCard(job, clip) {
       </video>
     </div>
     <div class="clip-body">
-      <div class="clip-badges">
-        <span class="badge-category">${clip.category || "Momento Forte"}</span>
-        ${isSubtitled ? `<span class="badge-subtitled">✨ Legendado</span>` : ""}
-        <span class="badge-score">🔥 Potencial: ${clip.hook_score || 90}%</span>
+      <div class="clip-header-row">
+        <div class="clip-title" title="${cleanTitle}">${cleanTitle}</div>
+        <span class="badge-score">🔥 ${clip.hook_score || 90}%</span>
       </div>
-      <div class="clip-title">${clip.title}</div>
-      <div class="clip-time">⏱️ ${clip.start_formatted} → ${clip.end_formatted} (${clip.duration}s${sizeInfo})</div>
-      <div class="clip-reason">💡 <strong>Porquê este corte:</strong> ${clip.reason}</div>
-      <div class="clip-excerpt">"${clip.excerpt || ""}"</div>
+
+      <div class="clip-meta-row">
+        <span class="clip-time">⏱️ ${clip.start_formatted} → ${clip.end_formatted} (${clip.duration}s${sizeInfo})</span>
+        ${isSubtitled ? `<span class="badge-subtitled">✨ Legendado</span>` : ""}
+      </div>
       
       <div class="clip-actions">
-        <button type="button" class="btn-burn-subtitles ${isSubtitled ? "subtitled" : ""}" data-filename="${clip.filename || ""}">
-          ${isSubtitled ? "✅ Legendas Ativas no Vídeo" : "✨ Legendar este Vídeo (Embutir Legendas)"}
-        </button>
-        <div class="clip-footer">
-          ${
-            isBrowserMode
-              ? `<button type="button" class="btn-success export-clip-btn">⬇️ Recortar & Baixar</button>`
-              : `
-                <a href="${videoUrl}?download=true" class="btn-success download-mp4-link" download>
-                  ${isSubtitled ? "⬇️ Baixar Legendado" : "⬇️ MP4"}
-                </a>
-              `
-          }
-          <a href="${srtHref}" class="btn-secondary" download="${clip.srt_filename || "legendas.srt"}">💬 Legendas (.SRT)</a>
+        ${
+          isBrowserMode
+            ? `<button type="button" class="btn-primary export-clip-btn">⬇️ Baixar Clip MP4</button>`
+            : `
+              <a href="${videoUrl}?download=true" class="btn-primary download-mp4-link" download>
+                ${isSubtitled ? "⬇️ Baixar Vídeo Legendado" : "⬇️ Baixar Clip MP4"}
+              </a>
+            `
+        }
+        <div class="clip-actions-secondary">
+          <button type="button" class="btn-secondary btn-burn-subtitles ${isSubtitled ? "subtitled" : ""}" data-filename="${clip.filename || ""}">
+            ${isSubtitled ? "✅ Legendas Prontas" : "✨ Embutir Legendas"}
+          </button>
+          <a href="${srtHref}" class="btn-secondary" download="${clip.srt_filename || "legendas.srt"}">💬 SRT</a>
         </div>
       </div>
     </div>
@@ -624,18 +626,18 @@ function createClipCard(job, clip) {
           videoEl.textTracks[0].mode = "showing";
         }
 
-        burnBtn.className = "btn-burn-subtitles subtitled";
-        burnBtn.innerHTML = `✅ Legendas Ativas no Vídeo`;
+        burnBtn.className = "btn-secondary btn-burn-subtitles subtitled";
+        burnBtn.innerHTML = `✅ Legendas Ativas`;
 
-        const badgesEl = card.querySelector(".clip-badges");
-        if (badgesEl && !badgesEl.querySelector(".badge-subtitled")) {
+        const metaRow = card.querySelector(".clip-meta-row");
+        if (metaRow && !metaRow.querySelector(".badge-subtitled")) {
           const subBadge = document.createElement("span");
           subBadge.className = "badge-subtitled";
           subBadge.innerHTML = `✨ Legendado`;
-          badgesEl.insertBefore(subBadge, badgesEl.querySelector(".badge-score"));
+          metaRow.appendChild(subBadge);
         }
 
-        showToast(`Legendas ativadas no leitor do clip "${clip.title}"!`);
+        showToast(`Legendas ativadas no leitor do clip "${cleanTitle}"!`);
         return;
       }
 
@@ -643,7 +645,7 @@ function createClipCard(job, clip) {
       if (burnBtn.disabled) return;
       burnBtn.disabled = true;
       const originalText = burnBtn.innerHTML;
-      burnBtn.innerHTML = `<span class="spinner-icon"></span> A embutir legendas com FFmpeg...`;
+      burnBtn.innerHTML = `<span class="spinner-icon"></span> A embutir legendas...`;
 
       try {
         const res = await fetch(`/api/jobs/${job.job_id}/clips/${encodeURIComponent(clip.filename)}/burn-subtitles`, {
@@ -669,24 +671,24 @@ function createClipCard(job, clip) {
           videoEl.load();
         }
 
-        burnBtn.className = "btn-burn-subtitles subtitled";
-        burnBtn.innerHTML = `✅ Legendas Embutidas no Vídeo`;
+        burnBtn.className = "btn-secondary btn-burn-subtitles subtitled";
+        burnBtn.innerHTML = `✅ Legendas Prontas`;
 
         const downloadLink = card.querySelector(".download-mp4-link");
         if (downloadLink) {
           downloadLink.href = `${data.subtitled_url}?download=true`;
-          downloadLink.innerHTML = `⬇️ Baixar Legendado`;
+          downloadLink.innerHTML = `⬇️ Baixar Vídeo Legendado`;
         }
 
-        const badgesEl = card.querySelector(".clip-badges");
-        if (badgesEl && !badgesEl.querySelector(".badge-subtitled")) {
+        const metaRow = card.querySelector(".clip-meta-row");
+        if (metaRow && !metaRow.querySelector(".badge-subtitled")) {
           const subBadge = document.createElement("span");
           subBadge.className = "badge-subtitled";
           subBadge.innerHTML = `✨ Legendado`;
-          badgesEl.insertBefore(subBadge, badgesEl.querySelector(".badge-score"));
+          metaRow.appendChild(subBadge);
         }
 
-        showToast(`Legendas adicionadas com sucesso ao "${clip.title}"!`);
+        showToast(`Legendas adicionadas com sucesso ao "${cleanTitle}"!`);
       } catch (err) {
         alert("Erro ao embutir legendas: " + err.message);
         burnBtn.innerHTML = originalText;
