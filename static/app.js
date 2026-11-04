@@ -393,20 +393,25 @@ uploadForm.addEventListener("submit", async (e) => {
       currentJobId = data.job_id;
       statusTitle.textContent = "A processar o seu vídeo com IA...";
       startPollingJob(currentJobId);
-    } else if (fileToSend) {
+    } else if (fileToSend && serverEnv.is_serverless) {
       await runBrowserServerlessPipeline(fileToSend);
     } else {
-      alert("Erro ao enviar o vídeo.");
+      let errMsg = "Erro ao enviar o vídeo.";
+      try {
+        const errJson = JSON.parse(xhr.responseText);
+        if (errJson.detail) errMsg = errJson.detail;
+      } catch (_) {}
+      alert(errMsg);
       submitBtn.disabled = false;
       submitBtn.textContent = "✨ Analisar Vídeo e Gerar Clips Curtos";
     }
   };
 
   xhr.onerror = async () => {
-    if (fileToSend) {
+    if (fileToSend && serverEnv.is_serverless) {
       await runBrowserServerlessPipeline(fileToSend);
     } else {
-      alert("Erro de ligação ao servidor.");
+      alert("Erro de ligação ao servidor local.");
       submitBtn.disabled = false;
       submitBtn.textContent = "✨ Analisar Vídeo e Gerar Clips Curtos";
     }
@@ -437,13 +442,11 @@ function startPollingJob(jobId) {
         renderResults(job);
       } else if (job.status === "failed") {
         clearInterval(pollTimer);
-        if (selectedFile) {
-          await runBrowserServerlessPipeline(selectedFile);
-        } else {
-          statusTitle.textContent = "❌ Erro no Processamento";
-          submitBtn.disabled = false;
-          submitBtn.textContent = "✨ Tentar Novamente";
-        }
+        statusTitle.textContent = "❌ Erro no Processamento";
+        statusMessage.textContent = job.message || "Ocorreu um erro no servidor.";
+        submitBtn.disabled = false;
+        submitBtn.textContent = "✨ Tentar Novamente";
+        showToast(job.message || "Erro no processamento do vídeo.");
       }
     } catch (e) {
       console.error("Erro ao consultar estado:", e);
@@ -497,6 +500,11 @@ function renderResults(job) {
   });
 }
 
+function srtToVtt(srtText) {
+  if (!srtText) return "WEBVTT\n\n";
+  return "WEBVTT\n\n" + srtText.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2");
+}
+
 function createClipCard(job, clip) {
   const card = document.createElement("div");
   card.className = "clip-card";
@@ -534,15 +542,9 @@ function createClipCard(job, clip) {
       <div class="clip-excerpt">"${clip.excerpt || ""}"</div>
       
       <div class="clip-actions">
-        ${
-          !isBrowserMode
-            ? `
-            <button type="button" class="btn-burn-subtitles ${isSubtitled ? "subtitled" : ""}" data-filename="${clip.filename}">
-              ${isSubtitled ? "✅ Legendas Ativas no Vídeo" : "✨ Legendar este Vídeo (Embutir Legendas)"}
-            </button>
-            `
-            : ""
-        }
+        <button type="button" class="btn-burn-subtitles ${isSubtitled ? "subtitled" : ""}" data-filename="${clip.filename || ""}">
+          ${isSubtitled ? "✅ Legendas Ativas no Vídeo" : "✨ Legendar este Vídeo (Embutir Legendas)"}
+        </button>
         <div class="clip-footer">
           ${
             isBrowserMode
@@ -561,10 +563,48 @@ function createClipCard(job, clip) {
 
   const videoEl = card.querySelector("video");
 
-  // Evento do botão de embutir legendas a pedido
+  // Evento do botão de legendar o clip
   const burnBtn = card.querySelector(".btn-burn-subtitles");
-  if (burnBtn && !isBrowserMode) {
+  if (burnBtn) {
     burnBtn.addEventListener("click", async () => {
+      // Caso 1: Modo navegador/leve -> Ativa faixas de legendas WebVTT instantaneamente no player
+      if (isBrowserMode) {
+        if (!clip.srt_content) {
+          alert("Não há legendas disponíveis para este clip.");
+          return;
+        }
+
+        let track = videoEl.querySelector("track");
+        if (!track) {
+          track = document.createElement("track");
+          track.kind = "subtitles";
+          track.label = "Português";
+          track.srclang = "pt";
+          track.default = true;
+          const vttBlob = new Blob([srtToVtt(clip.srt_content)], { type: "text/vtt" });
+          track.src = URL.createObjectURL(vttBlob);
+          videoEl.appendChild(track);
+        }
+        if (videoEl.textTracks && videoEl.textTracks.length > 0) {
+          videoEl.textTracks[0].mode = "showing";
+        }
+
+        burnBtn.className = "btn-burn-subtitles subtitled";
+        burnBtn.innerHTML = `✅ Legendas Ativas no Vídeo`;
+
+        const badgesEl = card.querySelector(".clip-badges");
+        if (badgesEl && !badgesEl.querySelector(".badge-subtitled")) {
+          const subBadge = document.createElement("span");
+          subBadge.className = "badge-subtitled";
+          subBadge.innerHTML = `✨ Legendado`;
+          badgesEl.insertBefore(subBadge, badgesEl.querySelector(".badge-score"));
+        }
+
+        showToast(`Legendas ativadas no leitor do clip "${clip.title}"!`);
+        return;
+      }
+
+      // Caso 2: Modo Servidor local -> Queima permanente das legendas no MP4 com FFmpeg
       if (burnBtn.disabled) return;
       burnBtn.disabled = true;
       const originalText = burnBtn.innerHTML;
