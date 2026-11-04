@@ -243,11 +243,7 @@ body {
   line-height: 1;
 }
 
-.header-doc-btn {
-  font-size: 0.8rem;
-  padding: 0.48rem 0.85rem;
-  white-space: nowrap;
-}
+
 
 /* Hero Banner */
 .hero-banner {
@@ -1247,13 +1243,7 @@ select:focus {
     display: none;
   }
 
-  .header-doc-btn .doc-btn-text {
-    display: none;
-  }
 
-  .header-doc-btn {
-    padding: 0.45rem 0.65rem;
-  }
 
   .card {
     padding: 1.15rem 0.95rem;
