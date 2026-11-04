@@ -106,6 +106,20 @@ fetch("/api/environment")
   })
   .catch(() => {});
 
+// Mostrar campo de Chave de API apenas quando o utilizador escolhe Gemini ou OpenAI
+const llmProviderEl = document.getElementById("llmProvider");
+const apiKeyFieldEl = document.getElementById("apiKeyField");
+if (llmProviderEl && apiKeyFieldEl) {
+  llmProviderEl.addEventListener("change", () => {
+    const val = llmProviderEl.value;
+    if (val === "gemini" || val === "openai") {
+      apiKeyFieldEl.classList.remove("hidden");
+    } else {
+      apiKeyFieldEl.classList.add("hidden");
+    }
+  });
+}
+
 function formatTime(seconds) {
   seconds = Math.max(0, Number(seconds) || 0);
   const hrs = Math.floor(seconds / 3600);
