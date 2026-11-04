@@ -537,7 +537,7 @@ function createClipCard(job, clip) {
           !isBrowserMode
             ? `
             <button type="button" class="btn-burn-subtitles ${isSubtitled ? "subtitled" : ""}" data-filename="${clip.filename}">
-              ${isSubtitled ? "✅ Legendas Embutidas no Vídeo" : "💬 Embutir Legendas no Vídeo"}
+              ${isSubtitled ? "✅ Legendas Ativas no Vídeo" : "✨ Legendar este Vídeo (Embutir Legendas)"}
             </button>
             `
             : ""
