@@ -349,7 +349,8 @@ uploadForm.addEventListener("submit", async (e) => {
   resultsSection.classList.add("hidden");
   transcriptSection.classList.add("hidden");
 
-  if (fileToSend && (serverEnv.is_serverless || !serverEnv.has_ffmpeg || fileToSend.size > 4.2 * 1024 * 1024)) {
+  // Só recorre ao modo browser leve se estiver especificamente num ambiente serverless (ex: Vercel)
+  if (fileToSend && serverEnv.is_serverless && (!serverEnv.has_ffmpeg || fileToSend.size > 4.2 * 1024 * 1024)) {
     await runBrowserServerlessPipeline(fileToSend);
     return;
   }
