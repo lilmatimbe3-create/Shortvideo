@@ -954,6 +954,18 @@ select:focus {
   object-fit: contain;
 }
 
+/* Estilo moderno de alto contraste para as legendas no leitor de vídeo */
+.clip-video-wrap video::cue {
+  background: rgba(0, 0, 0, 0.88);
+  color: #ffffff;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.4;
+  border-radius: 4px;
+  padding: 4px 10px;
+}
+
 .clip-body {
   padding: 1.15rem;
   display: flex;

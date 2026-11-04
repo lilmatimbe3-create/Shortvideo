@@ -512,9 +512,15 @@ function createClipCard(job, clip) {
   const isBrowserMode = Boolean(job.browser_mode);
   const isSubtitled = Boolean(clip.has_subtitles || clip.subtitled_filename);
   const activeFilename = isSubtitled ? clip.subtitled_filename : clip.filename;
+  const cleanStem = (clip.filename || "").replace(/\.mp4$/i, "");
+
   const videoUrl = isBrowserMode
     ? `${localObjectUrl}#t=${clip.start},${clip.end}`
     : `/api/jobs/${job.job_id}/clips/${encodeURIComponent(activeFilename)}`;
+
+  const vttUrl = isBrowserMode
+    ? (clip.srt_content ? URL.createObjectURL(new Blob([srtToVtt(clip.srt_content)], { type: "text/vtt" })) : "")
+    : `/api/jobs/${job.job_id}/clips/${encodeURIComponent(cleanStem)}.vtt`;
 
   let srtHref = "#";
   if (isBrowserMode) {
@@ -528,7 +534,13 @@ function createClipCard(job, clip) {
 
   card.innerHTML = `
     <div class="clip-video-wrap ${clip.vertical_crop ? "vertical" : ""}">
-      <video controls preload="metadata" src="${videoUrl}"></video>
+      <video controls preload="metadata" playsinline src="${videoUrl}">
+        ${
+          !isSubtitled && vttUrl
+            ? `<track kind="subtitles" label="Português" srclang="pt" default src="${vttUrl}" />`
+            : ""
+        }
+      </video>
     </div>
     <div class="clip-body">
       <div class="clip-badges">
@@ -562,6 +574,15 @@ function createClipCard(job, clip) {
   `;
 
   const videoEl = card.querySelector("video");
+
+  // Ativar automaticamente as legendas no player se houver faixa WebVTT
+  if (videoEl && !isSubtitled) {
+    videoEl.addEventListener("loadedmetadata", () => {
+      if (videoEl.textTracks && videoEl.textTracks[0]) {
+        videoEl.textTracks[0].mode = "showing";
+      }
+    });
+  }
 
   // Evento do botão de legendar o clip
   const burnBtn = card.querySelector(".btn-burn-subtitles");
@@ -625,6 +646,11 @@ function createClipCard(job, clip) {
 
         // Atualizar reprodução de vídeo para o novo ficheiro legendado
         if (videoEl) {
+          const oldTrack = videoEl.querySelector("track");
+          if (oldTrack) oldTrack.remove();
+          if (videoEl.textTracks && videoEl.textTracks[0]) {
+            videoEl.textTracks[0].mode = "disabled";
+          }
           videoEl.src = `${data.subtitled_url}?v=${Date.now()}`;
           videoEl.load();
         }

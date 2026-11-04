@@ -13,7 +13,7 @@ from fastapi import (
     BackgroundTasks,
     HTTPException,
 )
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -411,7 +411,23 @@ async def get_job_status(job_id: str):
 
 @app.get("/api/jobs/{job_id}/clips/{filename}")
 async def download_single_clip(job_id: str, filename: str, download: bool = False):
-    clip_path = JOBS_DIR / job_id / "clips" / filename
+    clips_dir = JOBS_DIR / job_id / "clips"
+
+    # Suporte dinâmico a legendas WebVTT (.vtt) para leitores de vídeo HTML5
+    if filename.endswith(".vtt"):
+        stem = filename[:-4].replace("_legendado", "")
+        srt_path = clips_dir / f"{stem}.srt"
+        if not srt_path.exists():
+            srt_path = clips_dir / filename.replace(".vtt", ".srt")
+        if srt_path.exists():
+            srt_text = srt_path.read_text(encoding="utf-8")
+            # Converter formato SRT (00:00:01,234) para WebVTT (00:00:01.234)
+            vtt_body = re.sub(r"(\d{2}:\d{2}:\d{2}),(\d{3})", r"\1.\2", srt_text)
+            vtt_content = f"WEBVTT - Legendas Automáticas ShortVideo Studio\n\n{vtt_body}"
+            return Response(content=vtt_content, media_type="text/vtt")
+        raise HTTPException(status_code=404, detail="Legendas VTT não encontradas.")
+
+    clip_path = clips_dir / filename
     if not clip_path.exists():
         raise HTTPException(status_code=404, detail="Ficheiro de clip não encontrado.")
 

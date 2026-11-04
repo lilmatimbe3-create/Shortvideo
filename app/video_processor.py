@@ -22,6 +22,46 @@ def _escape_ffmpeg_subtitles_path(srt_path: Path) -> str:
     return posix.replace(":", r"\:")
 
 
+def _probe_video_specs(video_path: Path) -> tuple[int, bool]:
+    """Descobre a altura do vídeo e se é vertical (9:16)."""
+    try:
+        cmd = [FFMPEG_BIN, "-i", str(video_path)]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        match = re.search(r"(\d{3,4})x(\d{3,4})", res.stderr)
+        if match:
+            w, h = int(match.group(1)), int(match.group(2))
+            return h, (h > w)
+    except Exception:
+        pass
+    return 720, False
+
+
+def _get_subtitles_filter(
+    srt_path: Path, is_vertical: bool = False, video_height: int = 720
+) -> str:
+    """
+    Gera o filtro de legendas FFmpeg com tamanho e margem vertical otimizados:
+    - Garante que a legenda fica posicionada ACIMA dos controlos do leitor de vídeo (MarginV >= 70).
+    - Ajusta proporções automaticamente para formato horizontal (16:9) e vertical (9:16).
+    """
+    escaped_srt = _escape_ffmpeg_subtitles_path(srt_path)
+    if is_vertical or video_height >= 1600:
+        fontsize = 44
+        margin_v = 180
+    elif video_height >= 1000:
+        fontsize = 32
+        margin_v = 90
+    else:
+        fontsize = 26
+        margin_v = 72
+
+    return (
+        f"subtitles='{escaped_srt}':force_style="
+        f"'Fontname=Arial,Bold=1,Fontsize={fontsize},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,"
+        f"BorderStyle=3,Outline=2.6,Shadow=1,MarginV={margin_v},Alignment=2'"
+    )
+
+
 def cut_video_clip(
     source_video: Path,
     output_path: Path,
@@ -45,9 +85,12 @@ def cut_video_clip(
         )
 
     if burn_subtitles and srt_path and srt_path.exists() and srt_path.stat().st_size > 0:
-        escaped_srt = _escape_ffmpeg_subtitles_path(srt_path)
         vf_filters.append(
-            f"subtitles='{escaped_srt}':force_style='Fontname=Arial,Fontsize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=3,Outline=2.2,Shadow=1,MarginV=35,Alignment=2'"
+            _get_subtitles_filter(
+                srt_path,
+                is_vertical=vertical_crop,
+                video_height=1920 if vertical_crop else 720,
+            )
         )
 
     cmd = [
@@ -95,15 +138,15 @@ def burn_subtitles_to_clip(
     srt_path: Path,
     output_path: Path,
 ) -> Path:
-    """Queima legendas SRT sincronizadas diretamente num clip MP4 já recortado de forma ultra-rápida."""
+    """Queima legendas SRT sincronizadas diretamente num clip MP4 já recortado com posição e visibilidade otimizadas."""
     if not srt_path.exists() or srt_path.stat().st_size == 0:
         raise ValueError("Ficheiro de legendas SRT não encontrado ou vazio.")
-    escaped_srt = _escape_ffmpeg_subtitles_path(srt_path)
-    sub_filter = (
-        f"subtitles='{escaped_srt}':force_style="
-        f"'Fontname=Arial,Fontsize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,"
-        f"BorderStyle=3,Outline=2.2,Shadow=1,MarginV=35,Alignment=2'"
+
+    video_height, is_vertical = _probe_video_specs(input_clip_path)
+    sub_filter = _get_subtitles_filter(
+        srt_path, is_vertical=is_vertical, video_height=video_height
     )
+
     cmd = [
         FFMPEG_BIN,
         "-y",
